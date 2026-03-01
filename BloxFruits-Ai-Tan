@@ -1,13 +1,14 @@
--- [[ Blox Fruits Ai-Tan: Auto Farm & Auto Quest ]] --
+-- [[ Blox Fruits: Auto Island & Auto Stats (Top to Bottom) ]] --
 _G.Settings = {
     ["AutoFarm"] = true,
-    ["TweenSpeed"] = 200, -- บินนุ่มๆ กันโดนเตะ 267
-    ["AutoStats"] = true
+    ["TweenSpeed"] = 220,
+    ["AutoStats"] = true -- เปิดระบบอัปพลังอัตโนมัติ
 }
 
 local player = game.Players.LocalPlayer
+local remotes = game:GetService("ReplicatedStorage").Remotes.CommF_
 
--- ระบบบินไปตามเกาะ (Tween) เพื่อกันโดนเตะ 267
+-- ระบบบิน (Tween) กันโดนเตะ 267
 local function SmoothMove(targetPos)
     local char = player.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
@@ -16,30 +17,46 @@ local function SmoothMove(targetPos)
     end
 end
 
--- ระบบเช็คจุดฟาร์มตามเลเวล (โลก 1) เพื่อไม่ให้ค้างที่เกาะหิมะ
-local function GetFarmPos(lv)
-    if lv < 10 then return CFrame.new(-1100, 15, 1500) -- เกาะเริ่มต้น
-    elseif lv < 40 then return CFrame.new(-1500, 40, 400) -- เกาะลิง
-    elseif lv < 150 then return CFrame.new(900, 15, -1400) -- เกาะทะเลทราย
-    elseif lv < 250 then return CFrame.new(1300, 15, -1300) -- เกาะหิมะ (ที่คุณเคยติด)
-    else return CFrame.new(-400, 15, 2500) -- เกาะคุก
+-- ตารางเกาะตามเลเวล (โลก 1)
+local function GetIslandPos(lv)
+    if lv < 10 then return CFrame.new(-1100, 15, 1500)
+    elseif lv < 30 then return CFrame.new(-1500, 40, 400)
+    elseif lv < 60 then return CFrame.new(-1100, 15, -1200)
+    elseif lv < 90 then return CFrame.new(900, 15, -1400)
+    elseif lv < 150 then return CFrame.new(1300, 15, -1300)
+    elseif lv < 250 then return CFrame.new(-400, 15, 2500)
+    elseif lv < 350 then return CFrame.new(-5000, 300, -2800)
+    elseif lv < 450 then return CFrame.new(5000, 50, -100)
+    elseif lv < 625 then return CFrame.new(-2000, 15, 5500)
+    else return CFrame.new(-5000, 300, -2800)
     end
 end
 
 task.spawn(function()
     while _G.Settings.AutoFarm do
-        task.wait(1)
+        task.wait(0.5)
         pcall(function()
             local lv = player.Data.Level.Value
             
-            -- บินไปเกาะที่เหมาะสม
-            SmoothMove(GetFarmPos(lv))
+            -- 1. ระบบอัปค่าพลัง (เรียงจากบนลงล่าง)
+            if _G.Settings.AutoStats then
+                local points = player.Data.StatsPoints.Value
+                if points > 0 then
+                    -- อัป Melee (บนสุด)
+                    remotes:InvokeServer("AddPoint", "Melee", 1)
+                    -- อัป Defense (อันที่สอง)
+                    remotes:InvokeServer("AddPoint", "Defense", 1)
+                end
+            end
 
-            -- ระบบดึงมอนสเตอร์มาตี (Bring Mob)
+            -- 2. บินไปเกาะที่เหมาะสม
+            SmoothMove(GetIslandPos(lv))
+
+            -- 3. ตีมอนสเตอร์
             for _, v in pairs(game.Workspace.Enemies:GetChildren()) do
                 if v:FindFirstChild("HumanoidRootPart") then
                     v.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
-                    v.Humanoid.Health = 0 -- (ตัวอย่างการโจมตี)
+                    game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
                 end
             end
         end)
