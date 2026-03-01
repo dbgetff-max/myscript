@@ -1,33 +1,55 @@
--- [[ Eleven Heaven: Prison Life God V19 ]] --
+-- [[ Eleven Heaven: Prison Life God V22 - 100% AIMLOCK ]] --
 local player = game.Players.LocalPlayer
 local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
+local runService = game:GetService("RunService")
 local core = game:GetService("CoreGui")
 
--- ลบ UI เก่า
-if core:FindFirstChild("ElevenPrison") then core.ElevenPrison:Destroy() end
+-- ลบ UI เก่าป้องกันบัค
+if core:FindFirstChild("ElevenPrisonGod") then core.ElevenPrisonGod:Destroy() end
 
 local sg = Instance.new("ScreenGui", core)
-sg.Name = "ElevenPrison"
+sg.Name = "ElevenPrisonGod"
 
--- [[ 1. FOV Circle (วงกลมสีเขียวล็อคเป้า) ]] --
+-- [[ 1. วงกลม FOV สีเขียว (จุดตัดสินความเป็นตาย) ]] --
 local FOVCircle = Drawing.new("Circle")
-FOVCircle.Color = Color3.new(0, 1, 0) -- สีเขียว
-FOVCircle.Thickness = 1
+FOVCircle.Color = Color3.new(0, 1, 0)
+FOVCircle.Thickness = 2
 FOVCircle.Filled = false
-FOVCircle.Radius = 150
+FOVCircle.Radius = 150 
 FOVCircle.Visible = true
 FOVCircle.Transparency = 1
 
--- อัปเดตวงกลมตามเมาส์
-game:GetService("RunService").RenderStepped:Connect(function()
+runService.RenderStepped:Connect(function()
     FOVCircle.Position = Vector2.new(mouse.X, mouse.Y + 36)
 end)
 
--- [[ 2. UI Main (Style Box Food) ]] --
+-- [[ 2. ฟังก์ชันล็อคเป้าแบบ 100% (เช็คเป้าที่ใกล้จุดศูนย์กลางที่สุด) ]] --
+local function getClosestTarget()
+    local target = nil
+    local shortestDistance = FOVCircle.Radius
+
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= player and v.Team ~= player.Team and v.Character and v.Character:FindFirstChild("Head") then
+            if v.Character.Humanoid.Health > 0 then
+                local pos, onScreen = camera:WorldToViewportPoint(v.Character.Head.Position)
+                if onScreen then
+                    local distance = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
+                    if distance < shortestDistance then
+                        target = v.Character.Head
+                        shortestDistance = distance
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+-- [[ 3. UI Menu สไตล์ Big Foot ]] --
 local Main = Instance.new("Frame", sg)
-Main.Size = UDim2.new(0, 350, 0, 300)
-Main.Position = UDim2.new(0.5, -175, 0.5, -150)
+Main.Size = UDim2.new(0, 350, 0, 350)
+Main.Position = UDim2.new(0.5, -175, 0.5, -175)
 Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 Main.Visible = false
 Main.Active = true
@@ -46,76 +68,79 @@ local Scroll = Instance.new("ScrollingFrame", Main)
 Scroll.Size = UDim2.new(1, -110, 1, -10)
 Scroll.Position = UDim2.new(0, 105, 0, 5)
 Scroll.BackgroundTransparency = 1
-Scroll.CanvasSize = UDim2.new(0, 0, 3, 0)
+Scroll.CanvasSize = UDim2.new(0, 0, 4, 0)
 Instance.new("UIListLayout", Scroll).Padding = UDim.new(0, 5)
 
--- ฟังก์ชันสร้างปุ่ม/สวิตช์
+local FOVLabel = Instance.new("TextLabel", Scroll)
+FOVLabel.Size = UDim2.new(0.95, 0, 0, 30); FOVLabel.BackgroundTransparency = 1
+FOVLabel.TextColor3 = Color3.new(0, 1, 0); FOVLabel.Text = "FOV Radius: " .. tostring(FOVCircle.Radius); FOVLabel.Font = Enum.Font.GothamBold
+
 local function CreateBtn(name, color, func)
     local btn = Instance.new("TextButton", Scroll)
-    btn.Size = UDim2.new(0.95, 0, 0, 35)
-    btn.BackgroundColor3 = color
-    btn.Text = name
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    Instance.new("UICorner", btn)
-    btn.Activated:Connect(func)
+    btn.Size = UDim2.new(0.95, 0, 0, 35); btn.BackgroundColor3 = color; btn.Text = name; btn.TextColor3 = Color3.new(1, 1, 1); btn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", btn); btn.Activated:Connect(func)
+    return btn
 end
 
--- [[ --- ระบบฟังชั่น --- ]] --
+-- [[ --- ฟังชั่นหลัก --- ]] --
 
--- 1. มองทะลุ (ESP)
-CreateBtn("เปิดมองทะลุ (ESP)", Color3.fromRGB(0, 100, 200), function()
-    for _, v in pairs(game.Players:GetPlayers()) do
-        if v ~= player and v.Character and not v.Character:FindFirstChild("Highlight") then
-            local hl = Instance.new("Highlight", v.Character)
-            hl.FillColor = Color3.new(1, 0, 0)
-            hl.OutlineColor = Color3.new(1, 1, 1)
-        end
-    end
+CreateBtn("ปรับ FOV เป็น 600 (กว้างสุด)", Color3.fromRGB(150, 0, 0), function()
+    FOVCircle.Radius = 600
+    FOVLabel.Text = "FOV Radius: 600"
 end)
 
--- 2. ล็อคเป้า 100% (Silent Aim)
-_G.SilentAim = true
-CreateBtn("ล็อคเป้า: " .. tostring(_G.SilentAim), Color3.fromRGB(0, 150, 0), function()
-    _G.SilentAim = not _G.SilentAim
+CreateBtn("ปรับ FOV เป็น 150 (ปกติ)", Color3.fromRGB(50, 50, 50), function()
+    FOVCircle.Radius = 150
+    FOVLabel.Text = "FOV Radius: 150"
 end)
 
--- 3. ระบบวาร์ป (สถานที่สำคัญ)
-CreateBtn("วาร์ปไป: ห้องซ่อมโจร", Color3.fromRGB(150, 50, 0), function()
-    player.Character.HumanoidRootPart.CFrame = CFrame.new(-944, 95, 2055)
+_G.Aimbot = true
+CreateBtn("ระบบล็อค 100%: ON/OFF", Color3.fromRGB(0, 150, 0), function(self)
+    _G.Aimbot = not _G.Aimbot
+    self.Text = _G.Aimbot and "ระบบล็อค 100%: ON" or "ระบบล็อค 100%: OFF"
 end)
 
-CreateBtn("วาร์ปไป: ในคุก (Cell)", Color3.fromRGB(50, 50, 50), function()
-    player.Character.HumanoidRootPart.CFrame = CFrame.new(-920, 95, 2138)
-end)
-
-CreateBtn("วาร์ปไป: คลังแสง (Armory)", Color3.fromRGB(200, 150, 0), function()
-    player.Character.HumanoidRootPart.CFrame = CFrame.new(-603, 95, 2052)
-end)
-
--- 4. ยิงอัตโนมัติ (Kill Aura / Auto Shoot)
-_G.KillAura = false
-CreateBtn("ยิงอัตโนมัติ (Kill Aura)", Color3.fromRGB(200, 0, 0), function()
-    _G.KillAura = not _G.KillAura
-    while _G.KillAura do
-        for _, v in pairs(game.Players:GetPlayers()) do
-            if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                local dist = (v.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
-                if dist < FOVCircle.Radius / 2 then -- ถ้ายุในวงกลม
-                    -- ส่งสัญญาณยิง (RemoteEvent ของ Prison Life)
-                    local args = {
-                        [1] = v.Character.Head,
-                        [2] = v.Character.Head.Position,
-                        [3] = player.Character:FindFirstChildOfClass("Tool")
-                    }
-                    game:GetService("ReplicatedStorage").ShootEvent:FireServer(args)
+-- ระบบเทพ (ล็อคแล้วส่ง Remote ยิงทันที)
+runService.RenderStepped:Connect(function()
+    if _G.Aimbot then
+        local target = getClosestTarget()
+        if target then
+            local tool = player.Character:FindFirstChildOfClass("Tool")
+            if tool then
+                -- ส่งสัญญาณยิงตรงเข้าหัว (100% Accuracy)
+                local event = game:GetService("ReplicatedStorage"):FindFirstChild("ShootEvent")
+                if event then
+                    event:FireServer({
+                        [1] = target,
+                        [2] = target.Position,
+                        [3] = tool
+                    })
                 end
             end
         end
-        task.wait(0.1)
     end
 end)
 
--- 5. ปรับขนาดวงกลม (ตามใจชอบ)
-CreateBtn("ขยายวงล็อคเป้า (+)", Color3.fromRGB(100, 100, 100), function()
-    FOVCircle.Radius = FOVCircle.Radius + 20
+-- ระบบ Name ESP (ชื่อบนหัว)
+CreateBtn("เปิดชื่อบนหัวแยกสี", Color3.fromRGB(0, 120, 255), function()
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("Head") then
+            local billboard = Instance.new("BillboardGui", v.Character.Head)
+            billboard.Size = UDim2.new(0, 200, 0, 50)
+            billboard.AlwaysOnTop = true
+            billboard.ExtentsOffset = Vector3.new(0, 3, 0)
+            
+            local label = Instance.new("TextLabel", billboard)
+            label.Size = UDim2.new(1, 0, 1, 0)
+            label.BackgroundTransparency = 1
+            label.Text = v.Name
+            label.Font = Enum.Font.GothamBold
+            label.TextSize = 14
+            label.TextStrokeTransparency = 0
+            
+            if v.Team.Name == "Guards" then label.TextColor3 = Color3.fromRGB(0, 170, 255)
+            elseif v.Team.Name == "Inmates" then label.TextColor3 = Color3.fromRGB(255, 150, 0)
+            elseif v.Team.Name == "Criminals" then label.TextColor3 = Color3.fromRGB(255, 0, 0) end
+        end
+    end
 end)
