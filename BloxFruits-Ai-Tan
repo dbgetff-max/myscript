@@ -1,68 +1,106 @@
--- [[ Blox Fruits: The Ultimate God Hunter (No Black Screen) ]] --
+-- [[ Blox Fruits: Ai-Tan Ultimate Edition (Full Item & Boss Hunter) ]] --
 _G.Config = {
     ["Farm"] = true,
     ["Stats"] = true,
-    ["AutoPower"] = true,  -- ระบบทำพาวเวอร์ (Mastery 400/600)
+    ["AutoPower"] = true,  -- ระบบทำพาวเวอร์ (สลับหมัด 400/600)
     ["BossHunter"] = true, -- ล่าบอส/แอดมิน/หนวดดำ/เกาะบรู๊ค ทันทีที่เกิด
-    ["SwordHunter"] = true, -- ล่า Saber, TTK, CDK, Buddy, Anchor
-    ["Speed"] = 200,
-    ["Height"] = 78        -- บินสูง 75-80 ตามสั่ง
+    ["SwordHunter"] = true, -- ล่าดาบ Saber, TTK, CDK, Buddy, Anchor
+    ["Speed"] = 200,       -- ความเร็วปลอดภัย
+    ["Height"] = 78        -- บินสูงตามสั่ง (75-80)
 }
 
 local player = game.Players.LocalPlayer
 local remotes = game:GetService("ReplicatedStorage").Remotes.CommF_
 
--- [[ ระบบบินสูงกันติดขอบ ]]
+-- [[ ระบบบินสูง 78 เมตร และล็อกความสูง ]]
 local function SmoothMove(targetPos)
     local char = player.Character
     if char and char:FindFirstChild("HumanoidRootPart") and _G.Config.Farm then
-        local highPos = targetPos * CFrame.new(0, _G.Config.Height, 0)
+        -- ล็อกความสูง (Y) ไว้ที่ 78 ตลอดการเดินทาง
+        local highPos = CFrame.new(targetPos.p.X, targetPos.p.Y + _G.Config.Height, targetPos.p.Z)
         local dist = (char.HumanoidRootPart.Position - highPos.p).Magnitude
-        game:GetService("TweenService"):Create(char.HumanoidRootPart, TweenInfo.new(dist/_G.Config.Speed, Enum.EasingStyle.Linear), {CFrame = highPos}):Play()
+        if dist > 5 then
+            game:GetService("TweenService"):Create(char.HumanoidRootPart, TweenInfo.new(dist/_G.Config.Speed, Enum.EasingStyle.Linear), {CFrame = highPos}):Play()
+        end
     end
 end
 
--- [[ ระบบสลับหมัดอัตโนมัติ (400/600) ]]
+-- [[ ระบบดึงมอนมาตี (Bring Mob) ]]
+local function AttackMonster(mob)
+    if mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
+        mob.HumanoidRootPart.CanCollide = false
+        -- ดึงมอนมาไว้ข้างหน้าตัวเราในระยะที่ตีโดนแน่นอน
+        mob.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
+        game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
+    end
+end
+
+-- [[ ระบบเช็คและสลับหมัด (400/600) ]]
 local function AutoSwapMelee()
-    for _, v in pairs(player.Backpack:GetChildren()) do
-        if v.ToolTip == "Melee" then
-            local mastery = v.Level.Value
-            if (string.find(v.Name, "V1") and mastery < 400) or (string.find(v.Name, "V2") and mastery < 600) then
-                player.Character.Humanoid:EquipTool(v)
+    if not _G.Config.AutoPower then return end
+    local currentTool = player.Character:FindFirstChildOfClass("Tool")
+    if currentTool and currentTool.ToolTip == "Melee" then
+        local mastery = currentTool.Level.Value
+        -- ถ้าหมัด V1 ครบ 400 หรือ V2 ครบ 600 ให้หาหมัดใหม่ในช่องเก็บของ
+        if (not string.find(currentTool.Name, "V2") and mastery >= 400) or (string.find(currentTool.Name, "V2") and mastery >= 600) then
+            for _, tool in pairs(player.Backpack:GetChildren()) do
+                if tool.ToolTip == "Melee" and tool.Name ~= currentTool.Name then
+                    player.Character.Humanoid:EquipTool(tool)
+                    break
+                end
             end
         end
     end
 end
 
--- [[ ระบบล่าบอส/แอดมิน/ของแรร์ ]]
+-- [[ ระบบล่าบอส & ของแรร์ (Special Targets) ]]
+local function GetSpecialTarget()
+    local names = {"rip_indra", "Darkbeard", "Soul Reaper", "Saber Expert", "Cake Queen", "Order"}
+    for _, enemy in pairs(game.Workspace.Enemies:GetChildren()) do
+        for _, name in pairs(names) do
+            if enemy.Name:find(name) and enemy.Humanoid.Health > 0 then
+                return enemy
+            end
+        end
+    end
+    return nil
+end
+
+-- [[ Loop การทำงานหลัก ]]
 task.spawn(function()
     while true do
-        task.wait(1)
+        task.wait(0.1)
         if _G.Config.Farm then
             pcall(function()
                 local lv = player.Data.Level.Value
-                local BossTarget = nil
-                
-                -- เช็คบอสพิเศษ (แอดมิน, หนวดดำ, บรู๊ค)
-                for _, v in pairs(game.Workspace.Enemies:GetChildren()) do
-                    if v.Name == "Rip_Indra" or v.Name == "Darkbeard" or v.Name == "Soul Reaper" or v.Name == "Saber Expert" or v.Name == "Awakened Ice Admiral" then
-                        BossTarget = v
-                        break
+                local char = player.Character
+                local specialBoss = GetSpecialTarget()
+
+                -- 1. ถ้าบอสพิเศษ/แอดมินเกิด -> พุ่งไปฆ่าทันที!
+                if specialBoss and _G.Config.BossHunter then
+                    SmoothMove(specialBoss.HumanoidRootPart.CFrame)
+                    AttackMonster(specialBoss)
+                else
+                    -- 2. ถ้าไม่มีบอส -> ฟาร์มเลเวล/หมัดตามปกติ
+                    AutoSwapMelee()
+                    
+                    -- พิกัดจุดฟาร์มตามโลก
+                    local farmPos
+                    if lv < 700 then farmPos = CFrame.new(-1500, 40, 400) -- โลก 1
+                    elseif lv < 1500 then farmPos = CFrame.new(-380, 70, 250) -- โลก 2
+                    else farmPos = CFrame.new(-5000, 300, -5000) end -- โลก 3
+                    
+                    SmoothMove(farmPos)
+                    
+                    -- ตีมอนสเตอร์ที่อยู่ใกล้ตัว
+                    for _, mob in pairs(game.Workspace.Enemies:GetChildren()) do
+                        if (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude < 300 then
+                            AttackMonster(mob)
+                        end
                     end
                 end
 
-                if BossTarget and BossTarget:FindFirstChild("HumanoidRootPart") then
-                    -- 🎯 วิ่งไปฆ่าบอสทันที!
-                    SmoothMove(BossTarget.HumanoidRootPart.CFrame)
-                    BossTarget.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
-                    game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
-                else
-                    -- 🌾 ถ้าไม่มีบอส ให้ฟาร์มเลเวล/หมัดตามปกติ
-                    AutoSwapMelee()
-                    -- (ใส่ตำแหน่งฟาร์มตามเกาะที่นี่)
-                end
-                
-                -- ระบบอัป Stats (บนลงล่าง)
+                -- 3. อัป Stats (บนลงล่าง)
                 if _G.Config.Stats then
                     remotes:InvokeServer("AddPoint", "Melee", 1)
                     remotes:InvokeServer("AddPoint", "Defense", 1)
@@ -72,14 +110,16 @@ task.spawn(function()
     end
 end)
 
--- [[ ปุ่มเปิด-ปิด (ไม่มีจอดำ) ]]
+-- [[ ปุ่มเปิด-ปิด UI ]]
 local sg = Instance.new("ScreenGui", game.CoreGui)
 local bt = Instance.new("TextButton", sg)
-bt.Size, bt.Position = UDim2.new(0,140,0,50), UDim2.new(1,-150,0.5,0)
-bt.Text = "AUTO FARM (ON)"
-bt.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+bt.Size, bt.Position = UDim2.new(0,160,0,50), UDim2.new(1,-170,0.5,0)
+bt.Text = "Ai-Tan (Full): ON"
+bt.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
 bt.MouseButton1Click:Connect(function()
     _G.Config.Farm = not _G.Config.Farm
-    bt.Text = _G.Config.Farm and "AUTO FARM (ON)" or "AUTO FARM (OFF)"
-    bt.BackgroundColor3 = _G.Config.Farm and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+    bt.Text = _G.Config.Farm and "Ai-Tan (Full): ON" or "Ai-Tan (Full): OFF"
+    bt.BackgroundColor3 = _G.Config.Farm and Color3.fromRGB(0, 255, 120) or Color3.fromRGB(255, 60, 60)
 end)
+
+print("Ai-Tan Script Loaded! All Systems Active.")
