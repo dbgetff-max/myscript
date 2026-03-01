@@ -1,72 +1,70 @@
--- [[ CHEATING PRO MASTER V1 - ALL TEAMS AUTO KILL & ESP ]] --
--- ระบบ: ยิงฝ่ายตรงข้ามอัตโนมัติ + มองทะลุ (รองรับทุกทีม)
+-- [[ CHEATING PRO MASTER V1 - FINAL EDITION ]] --
+-- ระบบ: มองทะลุ (แยกสีทีมชัดเจน) + ยิงทีมตรงข้ามออโต้ (ระยะ 200 เมตร)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
--- 1. ระบบมองทะลุ (ESP) - เห็นทุกคนในเซิร์ฟเวอร์
-local function CreateESP(Player)
-    local function SetupESP(Character)
-        local Head = Character:WaitForChild("Head", 10)
-        if Head then
-            local bgui = Instance.new("BillboardGui", Head)
-            bgui.Name = "MasterESP"
-            bgui.AlwaysOnTop = true
-            bgui.Size = UDim2.new(0, 200, 0, 50)
-            bgui.StudsOffset = Vector3.new(0, 2, 0)
+-- ตั้งค่าระยะการยิง (200 คือระยะที่กระสุนปืนไปถึงและไม่โดนเตะ)
+_G.ShootRange = 200 
 
-            local nametag = Instance.new("TextLabel", bgui)
-            nametag.BackgroundTransparency = 1
-            nametag.Size = UDim2.new(1, 0, 1, 0)
-            nametag.TextSize = 14
-            nametag.Font = Enum.Font.SourceSansBold
-            
-            RunService.Heartbeat:Connect(function()
-                if Player and Player.Parent and Character and Character:FindFirstChild("Head") then
-                    local teamName = Player.Team and Player.Team.Name or "No Team"
-                    nametag.Text = Player.Name .. " [" .. teamName .. "]"
-                    
-                    -- เปลี่ยนสีตามทีม
-                    if teamName == "Police" or teamName == "Guards" then
-                        nametag.TextColor3 = Color3.fromRGB(0, 150, 255) -- ตำรวจสีฟ้า
-                    elseif teamName == "Criminals" then
-                        nametag.TextColor3 = Color3.fromRGB(255, 0, 0) -- โจรสีแดง
-                    else
-                        nametag.TextColor3 = Color3.fromRGB(255, 255, 255) -- นักโทษ/อื่นๆ สีขาว
-                    end
-                else
-                    bgui:Destroy()
+-- 1. ระบบ ESP (มองทะลุแยกโทนสี)
+local function CreateESP(Player)
+    Player.CharacterAdded:Connect(function(Character)
+        local Head = Character:WaitForChild("Head", 10)
+        local bgui = Instance.new("BillboardGui", Head)
+        bgui.Name = "MasterESP"
+        bgui.AlwaysOnTop = true
+        bgui.Size = UDim2.new(0, 200, 0, 50)
+        bgui.StudsOffset = Vector3.new(0, 2.5, 0) -- ยกชื่อให้สูงขึ้นนิดนึงจะได้ไม่บังหน้า
+
+        local nametag = Instance.new("TextLabel", bgui)
+        nametag.BackgroundTransparency = 1
+        nametag.Size = UDim2.new(1, 0, 1, 0)
+        nametag.TextSize = 16
+        nametag.Font = Enum.Font.SourceSansBold
+        nametag.TextStrokeTransparency = 0 -- ขอบตัวหนังสือสีดำให้อ่านง่าย
+        
+        RunService.Heartbeat:Connect(function()
+            if Player and Player.Parent and Character and Character:FindFirstChild("Head") then
+                local team = Player.Team and Player.Team.Name or "Neutral"
+                nametag.Text = Player.Name .. " [" .. team .. "]"
+                
+                -- [[ ปรับโทนสีให้มองง่ายที่สุด ]] --
+                if team == "Police" or team == "Guards" then 
+                    nametag.TextColor3 = Color3.fromRGB(0, 191, 255) -- Deep Sky Blue (ฟ้าสด)
+                elseif team == "Criminals" then 
+                    nametag.TextColor3 = Color3.fromRGB(255, 0, 50)   -- Bright Red (แดงเข้ม/โจร)
+                elseif team == "Prisoners" then 
+                    nametag.TextColor3 = Color3.fromRGB(255, 170, 0) -- Vivid Orange (ส้มทอง/นักโทษ)
+                else 
+                    nametag.TextColor3 = Color3.fromRGB(255, 255, 255) -- White (ขาว/ทั่วไป)
                 end
-            end)
-        end
-    end
-    if Player.Character then SetupESP(Player.Character) end
-    Player.CharacterAdded:Connect(SetupESP)
+            else 
+                bgui:Destroy() 
+            end
+        end)
+    end)
 end
 
--- 2. ระบบยิงอัตโนมัติ (Auto Kill Enemies)
-RunService.RenderStepped:Connect(function()
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    if not LocalPlayer.Team then return end
-
-    for _, target in pairs(Players:GetPlayers()) do
-        if target ~= LocalPlayer and target.Team and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            
-            -- ตรวจสอบว่าเป็นศัตรูหรือไม่ (อยู่คนละทีมกัน)
-            if target.Team ~= LocalPlayer.Team then
-                local dist = (LocalPlayer.Character.HumanoidRootPart.Position - target.Character.HumanoidRootPart.Position).Magnitude
-                
-                if dist < 50 then -- ระยะยิง 50 เมตร
-                    local gun = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                    if gun and gun:FindFirstChild("RemoteEvent") then
-                        -- ส่งคำสั่งยิงไปที่พิกัดศัตรู
-                        gun.RemoteEvent:FireServer(target.Character.HumanoidRootPart.Position)
-                        
-                        -- ถ้าเป็นเกม Prison Life แบบเก่า (ดึงเลือดโดยตรง)
-                        if target.Character:FindFirstChild("Humanoid") then
-                            target.Character.Humanoid.Health = 0
-                        end
+-- 2. ระบบยิงอัตโนมัติ (Auto Kill)
+RunService.Stepped:Connect(function()
+    local char = LocalPlayer.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+    
+    -- ต้องถือปืนที่มีระบบ RemoteEvent (เช่น ปืนใน Prison Life)
+    if tool and tool:FindFirstChild("RemoteEvent") then
+        for _, target in pairs(Players:GetPlayers()) do
+            -- ยิงเฉพาะคนละทีมเท่านั้น
+            if target ~= LocalPlayer and target.Team and target.Team ~= LocalPlayer.Team then
+                local tChar = target.Character
+                if tChar and tChar:FindFirstChild("HumanoidRootPart") and tChar:FindFirstChild("Humanoid") and tChar.Humanoid.Health > 0 then
+                    
+                    local dist = (char.HumanoidRootPart.Position - tChar.HumanoidRootPart.Position).Magnitude
+                    
+                    -- เช็คระยะว่าไม่เกิน 200 เมตร
+                    if dist <= _G.ShootRange then
+                        tool.RemoteEvent:FireServer(tChar.HumanoidRootPart.Position)
                     end
                 end
             end
@@ -74,10 +72,8 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- เริ่มทำงาน
-for _, p in pairs(Players:GetPlayers()) do
-    if p ~= LocalPlayer then CreateESP(p) end
-end
+-- รันระบบให้กับผู้เล่นทุกคน
+for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
 Players.PlayerAdded:Connect(CreateESP)
 
-print("Cheating Pro Master V1: ระบบ All-in-One พร้อมใช้งาน!")
+print("Cheating Pro Master V1: พร้อมใช้งานแล้ว! (โทนสีใหม่ + ระยะยิง 200m)")
