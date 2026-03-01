@@ -1,59 +1,77 @@
--- [[ Eleven's Nightmare: Jumpscare & Map Wipe ]] --
--- คอนเซปต์: เสียงดังสนั่น + จอขาว + รีเซ็ตทั้งแมพ
+-- [[ Eleven Ultimate: Tsunami & Wipe (Fixed for Android) ]] --
+-- แก้ไขปุ่มกดไม่ได้: ใช้คำสั่ง Activated ทะลุหน้าจอ
 
 local player = game.Players.LocalPlayer
-
--- [[ ระบบ UI หน้าสุดเสมอ ]] --
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game.CoreGui
-ScreenGui.DisplayOrder = 999999
+ScreenGui.DisplayOrder = 99999999 -- อยู่บนสุดเสมอ
+ScreenGui.IgnoreGuiInset = true 
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-MainFrame.Position = UDim2.new(0.4, 0, 0.02, 0) -- ไว้บนสุดของจอ
-MainFrame.Size = UDim2.new(0, 180, 0, 50)
-MainFrame.Draggable = true
+-- [[ ฟังก์ชัน: สึนามิถล่มเกาะ ]] --
+local function SpawnTsunami()
+    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("⚠️ สึนามิถล่มเกาะโดย Macbook Eleven! ⚠️", "All")
+    local wave = Instance.new("Part")
+    wave.Size = Vector3.new(3000, 400, 50) -- รัศมีถมเกาะ
+    wave.Anchored = true
+    wave.CanCollide = false
+    wave.Material = Enum.Material.Neon
+    wave.Color = Color3.fromRGB(0, 150, 255)
+    wave.Transparency = 0.5
+    wave.Position = player.Character.HumanoidRootPart.Position + Vector3.new(0, 50, -500)
+    wave.Parent = workspace
+    task.spawn(function()
+        for i = 1, 800 do
+            wave.CFrame = wave.CFrame * CFrame.new(0, 0, 7)
+            task.wait(0.01)
+        end
+        wave:Destroy()
+    end)
+end
 
-local StartBtn = Instance.new("TextButton")
-StartBtn.Parent = MainFrame
-StartBtn.Size = UDim2.new(1, 0, 1, 0)
-StartBtn.Text = "ปล่อยคำสาป (สะดุ้งทั้งเกาะ)"
-StartBtn.TextColor3 = Color3.new(1, 1, 1)
-StartBtn.BackgroundTransparency = 1
-StartBtn.Font = Enum.Font.GothamBold
-StartBtn.TextSize = 14
-
--- [[ ฟังก์ชันคำสาป ]] --
-local function LaunchNightmare()
-    -- 1. ประกาศข้อความข่มขวัญ
-    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
-        "หลับใหลไปในฝันร้ายของ Macbook Eleven...!", "All"
-    )
-
-    -- 2. รันระบบสำหรับทุกคนในเซิร์ฟ
+-- [[ ฟังก์ชัน: ล้างเกาะ (Reset All) ]] --
+local function WipeServer()
+    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("🔥 ล้างบางทั้งเกาะโดย Macbook Eleven! 🔥", "All")
     for _, v in pairs(game.Players:GetPlayers()) do
-        if v ~= player and v.Character then
-            -- ใส่เสียงที่ดังและน่าตกใจ (Airhorn / Explosion)
-            local sound = Instance.new("Sound")
-            sound.SoundId = "rbxassetid://143570537" -- เสียง Airhorn ดังๆ
-            sound.Volume = 10
-            sound.Parent = v.Character:FindFirstChild("HumanoidRootPart") or workspace
-            sound:Play()
-
-            -- ทำให้ตัวละครเขาดีดขึ้นฟ้า (สะดุ้งของจริง)
-            if v.Character:FindFirstChild("HumanoidRootPart") then
-                v.Character.HumanoidRootPart.Velocity = Vector3.new(0, 200, 0)
-            end
-
-            -- สั่งรีเซ็ตหลังจากตกใจ 0.5 วินาที
-            task.delay(0.5, function()
-                if v.Character and v.Character:FindFirstChild("Humanoid") then
-                    v.Character.Humanoid.Health = 0
-                end
-            end)
+        if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") then
+            v.Character.Humanoid.Health = 0
         end
     end
 end
 
-StartBtn.Activated:Connect(LaunchNightmare)
+-- [[ สร้าง UI 2 ปุ่ม ]] --
+local Frame = Instance.new("Frame")
+Frame.Parent = ScreenGui
+Frame.Size = UDim2.new(0, 180, 0, 130)
+Frame.Position = UDim2.new(0.4, 0, 0.1, 0) -- ไว้กลางจอด้านบน
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.Active = true
+Frame.Draggable = true -- ลากย้ายได้ถ้าบัง
+
+local Corner = Instance.new("UICorner")
+Corner.Parent = Frame
+
+-- ปุ่มที่ 1: สึนามิ
+local Btn1 = Instance.new("TextButton")
+Btn1.Parent = Frame
+Btn1.Size = UDim2.new(0.9, 0, 0.4, 0)
+Btn1.Position = UDim2.new(0.05, 0, 0.05, 0)
+Btn1.Text = "เรียกสึนามิ 🌊"
+Btn1.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+Btn1.TextColor3 = Color3.new(1, 1, 1)
+Btn1.Font = Enum.Font.GothamBold
+Btn1.TextSize = 18
+
+-- ปุ่มที่ 2: ล้างเกาะ
+local Btn2 = Instance.new("TextButton")
+Btn2.Parent = Frame
+Btn2.Size = UDim2.new(0.9, 0, 0.4, 0)
+Btn2.Position = UDim2.new(0.05, 0, 0.55, 0)
+Btn2.Text = "ล้างทั้งเกาะ 💀"
+Btn2.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+Btn2.TextColor3 = Color3.new(1, 1, 1)
+Btn2.Font = Enum.Font.GothamBold
+Btn2.TextSize = 18
+
+-- [[ เชื่อมคำสั่งการกด (ใช้ Activated เพื่อความชัวร์ใน Android) ]] --
+Btn1.Activated:Connect(SpawnTsunami)
+Btn2.Activated:Connect(WipeServer)
