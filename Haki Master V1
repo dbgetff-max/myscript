@@ -1,81 +1,71 @@
--- [[ Eleven Disaster Hub: Storm & Disaster ]] --
--- สำหรับ Android (Delta) | เน้นเอฟเฟกต์ภัยพิบัติ
+-- [[ Eleven Heavenly Way: Map Wipe Edition ]] --
+-- สำหรับ Android (Delta) | รัศมี: 2000 (ครอบคลุมทั้งเกาะ)
 
 local player = game.Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local root = char:WaitForChild("HumanoidRootPart")
+local hum = char:WaitForChild("Humanoid")
 
 -- [[ ระบบ UI ]] --
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
-local TornadoBtn = Instance.new("TextButton")
-local QuakeBtn = Instance.new("TextButton")
+local StartBtn = Instance.new("TextButton")
 local UICorner = Instance.new("UICorner")
+local UIStroke = Instance.new("UIStroke")
 
 ScreenGui.Parent = game.CoreGui
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(0, 50, 100)
-MainFrame.Position = UDim2.new(0.7, 0, 0.4, 0)
-MainFrame.Size = UDim2.new(0, 150, 0, 110)
+MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+MainFrame.Position = UDim2.new(0.8, 0, 0.45, 0)
+MainFrame.Size = UDim2.new(0, 150, 0, 70)
 MainFrame.Active = true
 MainFrame.Draggable = true
 UICorner.Parent = MainFrame
 
--- ปุ่มเสกพายุ
-TornadoBtn.Parent = MainFrame
-TornadoBtn.Size = UDim2.new(0.9, 0, 0.4, 0)
-TornadoBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
-TornadoBtn.Text = "เสกพายุหมุน"
-TornadoBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-TornadoBtn.TextColor3 = Color3.new(1, 1, 1)
+UIStroke.Parent = MainFrame
+UIStroke.Thickness = 3
+UIStroke.Color = Color3.fromRGB(255, 215, 0) -- ขอบสีทองแบบเทพเจ้า
 
--- ปุ่มแผ่นดินไหว
-QuakeBtn.Parent = MainFrame
-QuakeBtn.Size = UDim2.new(0.9, 0, 0.4, 0)
-QuakeBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
-QuakeBtn.Text = "แผ่นดินไหว"
-QuakeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-QuakeBtn.TextColor3 = Color3.new(1, 1, 1)
+StartBtn.Parent = MainFrame
+StartBtn.Size = UDim2.new(1, 0, 1, 0)
+StartBtn.Text = "ล้างเกาะ!"
+StartBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+StartBtn.BackgroundTransparency = 1
+StartBtn.Font = Enum.Font.GothamBold
+StartBtn.TextSize = 20
 
--- [[ ฟังก์ชันเสกพายุ (Tornado) ]] --
-TornadoBtn.MouseButton1Click:Connect(function()
-    print("ปลดปล่อยพายุแห่ง Eleven!")
-    local tornadoPart = Instance.new("Part")
-    tornadoPart.Anchored = true
-    tornadoPart.CanCollide = false
-    tornadoPart.Position = root.Position + Vector3.new(0, 10, 0)
-    tornadoPart.Size = Vector3.new(1, 1, 1)
-    tornadoPart.Transparency = 0.5
-    tornadoPart.Parent = workspace
-    
-    -- สร้างเอฟเฟกต์หมุนวน
-    task.spawn(function()
-        for i = 1, 100 do
-            for _, v in pairs(game.Players:GetPlayers()) do
-                if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                    local targetRoot = v.Character.HumanoidRootPart
-                    local dist = (tornadoPart.Position - targetRoot.Position).Magnitude
-                    if dist < 40 then
-                        -- ดูดคนเข้าหาพายุและหมุน
-                        targetRoot.CFrame = targetRoot.CFrame * CFrame.Angles(0, math.rad(20), 0)
-                        targetRoot.Velocity = Vector3.new(0, 50, 0) -- ทำให้ตัวลอย
-                    end
-                end
-            end
-            task.wait(0.1)
-        end
-        tornadoPart:Destroy()
-    end)
-end)
-
--- [[ ฟังก์ชันแผ่นดินไหว (Earthquake) ]] --
-QuakeBtn.MouseButton1Click:Connect(function()
+-- [[ ฟังก์ชันมหาเวทย์วิถีสวรรค์ ]] --
+StartBtn.MouseButton1Click:Connect(function()
+    -- 1. ประกาศศักดา (ประกาศแชท)
     game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
-        "[ ภัยพิบัติ: แผ่นดินไหวโดย Macbook Eleven! ]", "All"
+        "[ วิถีสวรรค์: มหันตภัยถมเกาะโดย Macbook Eleven... จงหายไปให้หมด! ]", "All"
     )
-    for i = 1, 20 do
-        local shake = Vector3.new(math.random(-2,2), 0, math.random(-2,2))
-        workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame * CFrame.new(shake)
-        task.wait(0.05)
+    
+    -- 2. ทะยานขึ้นสู่ท้องฟ้า (สูงมากเพื่อให้เห็นทั่วเกาะ)
+    local bv = Instance.new("BodyVelocity")
+    bv.Velocity = Vector3.new(0, 100, 0)
+    bv.MaxForce = Vector3.new(0, math.huge, 0)
+    bv.Parent = root
+    
+    task.wait(3.5) -- บินขึ้นไปสูงๆ
+    bv:Destroy()
+    
+    -- 3. เอฟเฟกต์แสงระเบิดมหาศาล
+    local exp = Instance.new("Explosion")
+    exp.Position = root.Position
+    exp.BlastRadius = 2000 -- รัศมีถมเกาะ
+    exp.BlastPressure = 0 -- ไม่ให้ของกระเด็นจนเซิร์ฟค้าง แต่เน้นฆ่า
+    exp.Parent = workspace
+    
+    -- 4. ส่งทุกคนไปเกิดใหม่ (Reset Everyone)
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") then
+            -- ไม่ต้องเช็คระยะ เพราะรัศมี 2000 คือทั่วแมพ Brookhaven แล้ว
+            v.Character.Humanoid.Health = 0
+        end
     end
+    
+    -- 5. ตัวเราสละชีพเพื่อความเท่
+    task.wait(0.1)
+    hum.Health = 0
 end)
