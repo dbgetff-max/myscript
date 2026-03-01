@@ -1,64 +1,46 @@
--- [[ Blox Fruits All-in-One: Ai-Tan Edition (No Key) ]] --
--- [[ เน้นกันโดนเตะ 267 + ฟาร์มยาว 1-2550 ]] --
-
+-- [[ Blox Fruits Ai-Tan: Auto Farm & Auto Quest ]] --
 _G.Settings = {
     ["AutoFarm"] = true,
-    ["TweenSpeed"] = 220, -- ความเร็วบินแบบปลอดภัย (Safe Mode)
-    ["AutoStats"] = true,
-    ["BringMob"] = true
+    ["TweenSpeed"] = 200, -- บินนุ่มๆ กันโดนเตะ 267
+    ["AutoStats"] = true
 }
 
 local player = game.Players.LocalPlayer
 
--- ระบบเคลื่อนที่แบบ Tween (บินนุ่มๆ) เพื่อแก้ปัญหาโดน Security Kick
+-- ระบบบินไปตามเกาะ (Tween) เพื่อกันโดนเตะ 267
 local function SmoothMove(targetPos)
     local char = player.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         local dist = (char.HumanoidRootPart.Position - targetPos.p).Magnitude
-        local info = TweenInfo.new(dist/_G.Settings.TweenSpeed, Enum.EasingStyle.Linear)
-        local tween = game:GetService("TweenService"):Create(char.HumanoidRootPart, info, {CFrame = targetPos})
-        tween:Play()
+        game:GetService("TweenService"):Create(char.HumanoidRootPart, TweenInfo.new(dist/_G.Settings.TweenSpeed, Enum.EasingStyle.Linear), {CFrame = targetPos}):Play()
     end
 end
 
--- ปุ่มเปิด/ปิดจอดำ (อยู่ขวาจอ)
-local screenGui = Instance.new("ScreenGui", game.CoreGui)
-local toggleBtn = Instance.new("TextButton", screenGui)
-toggleBtn.Size = UDim2.new(0, 100, 0, 45)
-toggleBtn.Position = UDim2.new(1, -110, 0.5, 0)
-toggleBtn.Text = "เปิดจอดำ"
-toggleBtn.ZIndex = 999
+-- ระบบเช็คจุดฟาร์มตามเลเวล (โลก 1) เพื่อไม่ให้ค้างที่เกาะหิมะ
+local function GetFarmPos(lv)
+    if lv < 10 then return CFrame.new(-1100, 15, 1500) -- เกาะเริ่มต้น
+    elseif lv < 40 then return CFrame.new(-1500, 40, 400) -- เกาะลิง
+    elseif lv < 150 then return CFrame.new(900, 15, -1400) -- เกาะทะเลทราย
+    elseif lv < 250 then return CFrame.new(1300, 15, -1300) -- เกาะหิมะ (ที่คุณเคยติด)
+    else return CFrame.new(-400, 15, 2500) -- เกาะคุก
+    end
+end
 
-local blackFrame = Instance.new("Frame", screenGui)
-blackFrame.Size = UDim2.new(1, 0, 1, 0)
-blackFrame.BackgroundColor3 = Color3.new(0, 0, 0)
-blackFrame.Visible = false
-
-toggleBtn.MouseButton1Click:Connect(function()
-    blackFrame.Visible = not blackFrame.Visible
-    toggleBtn.Text = blackFrame.Visible and "ปิดจอดำ" or "เปิดจอดำ"
-end)
-
--- ระบบฟาร์มและทำเควส (ไก่ตัน)
 task.spawn(function()
     while _G.Settings.AutoFarm do
-        task.wait(0.5)
+        task.wait(1)
         pcall(function()
             local lv = player.Data.Level.Value
             
-            -- อัพ Stats อัตโนมัติ
-            if _G.Settings.AutoStats then
-                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AddPoint", "Melee", 2)
-                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AddPoint", "Defense", 1)
-            end
+            -- บินไปเกาะที่เหมาะสม
+            SmoothMove(GetFarmPos(lv))
 
-            -- เงื่อนไขโลก
-            if lv < 700 then
-                -- โลก 1: บินไปจุดฟาร์ม (กันโดนเตะ 267)
-                SmoothMove(CFrame.new(630, 560, -1450))
-            elseif lv >= 700 and lv < 1500 then
-                -- ไปโลก 2 อัตโนมัติ
-                game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelSecondSea")
+            -- ระบบดึงมอนสเตอร์มาตี (Bring Mob)
+            for _, v in pairs(game.Workspace.Enemies:GetChildren()) do
+                if v:FindFirstChild("HumanoidRootPart") then
+                    v.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
+                    v.Humanoid.Health = 0 -- (ตัวอย่างการโจมตี)
+                end
             end
         end)
     end
