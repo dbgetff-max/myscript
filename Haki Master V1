@@ -1,77 +1,66 @@
--- [[ Eleven Ultimate: Tsunami & Wipe (Fixed for Android) ]] --
--- แก้ไขปุ่มกดไม่ได้: ใช้คำสั่ง Activated ทะลุหน้าจอ
+-- [[ Eleven's Portal & Wipe: ดึงมาตบถล่มเกาะ ]] --
+-- คอนเซปต์: วาร์ปทุกคนมาตรงหน้า > ระเบิดเปรี้ยงเดียว > หายทั้งเซิร์ฟ
 
 local player = game.Players.LocalPlayer
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game.CoreGui
-ScreenGui.DisplayOrder = 99999999 -- อยู่บนสุดเสมอ
-ScreenGui.IgnoreGuiInset = true 
+ScreenGui.DisplayOrder = 999999
 
--- [[ ฟังก์ชัน: สึนามิถล่มเกาะ ]] --
-local function SpawnTsunami()
-    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("⚠️ สึนามิถล่มเกาะโดย Macbook Eleven! ⚠️", "All")
-    local wave = Instance.new("Part")
-    wave.Size = Vector3.new(3000, 400, 50) -- รัศมีถมเกาะ
-    wave.Anchored = true
-    wave.CanCollide = false
-    wave.Material = Enum.Material.Neon
-    wave.Color = Color3.fromRGB(0, 150, 255)
-    wave.Transparency = 0.5
-    wave.Position = player.Character.HumanoidRootPart.Position + Vector3.new(0, 50, -500)
-    wave.Parent = workspace
-    task.spawn(function()
-        for i = 1, 800 do
-            wave.CFrame = wave.CFrame * CFrame.new(0, 0, 7)
-            task.wait(0.01)
-        end
-        wave:Destroy()
-    end)
-end
-
--- [[ ฟังก์ชัน: ล้างเกาะ (Reset All) ]] --
-local function WipeServer()
-    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("🔥 ล้างบางทั้งเกาะโดย Macbook Eleven! 🔥", "All")
-    for _, v in pairs(game.Players:GetPlayers()) do
-        if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") then
-            v.Character.Humanoid.Health = 0
-        end
-    end
-end
-
--- [[ สร้าง UI 2 ปุ่ม ]] --
 local Frame = Instance.new("Frame")
 Frame.Parent = ScreenGui
 Frame.Size = UDim2.new(0, 180, 0, 130)
-Frame.Position = UDim2.new(0.4, 0, 0.1, 0) -- ไว้กลางจอด้านบน
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.Position = UDim2.new(0.4, 0, 0.1, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- สีดำขรึม
 Frame.Active = true
-Frame.Draggable = true -- ลากย้ายได้ถ้าบัง
+Frame.Draggable = true
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
-local Corner = Instance.new("UICorner")
-Corner.Parent = Frame
+-- [[ ปุ่มที่ 1: ดึงทุกคนมาหาเรา (Bring Everyone) ]] --
+local BringBtn = Instance.new("TextButton")
+BringBtn.Parent = Frame
+BringBtn.Size = UDim2.new(0.9, 0, 0.4, 0)
+BringBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
+BringBtn.Text = "ดึงมาที่นี่! 🌀"
+BringBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+BringBtn.TextColor3 = Color3.new(1, 1, 1)
+BringBtn.Font = Enum.Font.GothamBold
+BringBtn.TextSize = 16
 
--- ปุ่มที่ 1: สึนามิ
-local Btn1 = Instance.new("TextButton")
-Btn1.Parent = Frame
-Btn1.Size = UDim2.new(0.9, 0, 0.4, 0)
-Btn1.Position = UDim2.new(0.05, 0, 0.05, 0)
-Btn1.Text = "เรียกสึนามิ 🌊"
-Btn1.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
-Btn1.TextColor3 = Color3.new(1, 1, 1)
-Btn1.Font = Enum.Font.GothamBold
-Btn1.TextSize = 18
+BringBtn.Activated:Connect(function()
+    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("🌀 ทุกคนจงมาหา Macbook Eleven! 🌀", "All")
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        for _, v in pairs(game.Players:GetPlayers()) do
+            if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                v.Character.HumanoidRootPart.CFrame = hrp.CFrame * CFrame.new(0, 0, -5) -- ดึงมาอยู่ข้างหน้าเรา 5 หน่วย
+            end
+        end
+    end
+end)
 
--- ปุ่มที่ 2: ล้างเกาะ
-local Btn2 = Instance.new("TextButton")
-Btn2.Parent = Frame
-Btn2.Size = UDim2.new(0.9, 0, 0.4, 0)
-Btn2.Position = UDim2.new(0.05, 0, 0.55, 0)
-Btn2.Text = "ล้างทั้งเกาะ 💀"
-Btn2.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-Btn2.TextColor3 = Color3.new(1, 1, 1)
-Btn2.Font = Enum.Font.GothamBold
-Btn2.TextSize = 18
+-- [[ ปุ่มที่ 2: ระเบิดล้างบาง (Boom Wipe) ]] --
+local WipeBtn = Instance.new("TextButton")
+WipeBtn.Parent = Frame
+WipeBtn.Size = UDim2.new(0.9, 0, 0.4, 0)
+WipeBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+WipeBtn.Text = "ระเบิดตู้ม! 💣"
+WipeBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+WipeBtn.TextColor3 = Color3.new(1, 1, 1)
+WipeBtn.Font = Enum.Font.GothamBold
+WipeBtn.TextSize = 16
 
--- [[ เชื่อมคำสั่งการกด (ใช้ Activated เพื่อความชัวร์ใน Android) ]] --
-Btn1.Activated:Connect(SpawnTsunami)
-Btn2.Activated:Connect(WipeServer)
+WipeBtn.Activated:Connect(function()
+    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("💣 ลาก่อนพวกมนุษย์... ตู้มมม! 💣", "All")
+    
+    -- เอฟเฟกต์ระเบิด (เราเห็นคนเดียวแต่เสียงกับดาเมจคนอื่นโดน)
+    local explosion = Instance.new("Explosion")
+    explosion.Position = player.Character.HumanoidRootPart.Position
+    explosion.BlastRadius = 100
+    explosion.Parent = workspace
+
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") then
+            v.Character.Humanoid.Health = 0 -- สั่งตายทันที
+        end
+    end
+end)
