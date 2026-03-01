@@ -1,107 +1,178 @@
--- [[ MOON X : THE PRESIDENT HUB 🌙 (FULL SCRIPT + THAI) ]] --
--- [[ รวมทุกฟังก์ชัน: ฟาร์ม, หาของแรร์, ลงดัน, ล่าบอส, สุ่มผล ]] --
+-- [[ LUNAR HUB: TOTAL REBUILD ]] --
+-- Features: White UI, Moon Logo, Drag System, Anti-Lag, Auto Farm, Inf Jump
 
-repeat wait() until game:IsLoaded()
-local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
+local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local userInput = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
 
--- [[ 1. ระบบใส่โค้ดคูณ 2 อัตโนมัติ (Force Redeem) ]]
-local codes = {"REWARDHELPER", "KITT_RESET", "Sub2CaptainMaui", "Sub2Fer999", "JCWK", "Magicbus", "Starcodeheo", "BLUXXY", "Enyu_is_Pro", "Sub2OfficialNoobie", "STRAWBERRYBOY"}
-for _, v in pairs(codes) do spawn(function() remote:InvokeServer("RedeemCode", v) end) end
+-- 1. [ CORE UI SETUP ]
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LunarHub_Official"
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
 
--- [[ 2. โหลด Library เมนูสีดำทองสุดเท่ ]]
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("MOON X : PRESIDENT HUB 🌙", "DarkTheme")
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 480, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -240, 0.5, -160)
+MainFrame.BackgroundColor3 = Color3.fromRGB(250, 250, 250) -- สีขาวนวล
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Parent = ScreenGui
 
--- [[ 3. ปุ่มย่อเก็บเมนูรูปดวงจันทร์ 🌙 ]]
-local MoonToggle = Instance.new("ScreenGui", game.CoreGui)
-local MoonBtn = Instance.new("TextButton", MoonToggle)
-MoonBtn.Size = UDim2.new(0, 55, 0, 55)
-MoonBtn.Position = UDim2.new(0, 20, 0.4, 0)
-MoonBtn.Text = "🌙"
-MoonBtn.TextSize = 35
-MoonBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MoonBtn.TextColor3 = Color3.new(1, 1, 1)
-MoonBtn.BorderSizePixel = 0
-MoonBtn.ZIndex = 10 -- ให้ปุ่มอยู่หน้าสุด
+local UICorner = Instance.new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(0, 12)
 
--- ระบบซ่อน/แสดงเมนู
-local isMenuVisible = true
-MoonBtn.MouseButton1Click:Connect(function()
-    isMenuVisible = not isMenuVisible
-    game.CoreGui:FindFirstChild("MOON X : PRESIDENT HUB 🌙").Enabled = isMenuVisible
-end)
+-- 2. [ TOP BAR & MOON LOGO ]
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 45)
+TopBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 12)
 
--- --- [ ช่องที่ 1: ฟาร์มอัตโนมัติ ] ---
-local Tab1 = Window:NewTab("ฟาร์มออโต้ 🏠")
-local Sec1 = Tab1:NewSection("ตั้งค่าการฟาร์มเลเวล")
+local MoonLogo = Instance.new("ImageLabel")
+MoonLogo.Size = UDim2.new(0, 30, 0, 30)
+MoonLogo.Position = UDim2.new(0, 10, 0, 7)
+MoonLogo.Image = "rbxassetid://12759005544" -- โลโก้ดวงจันทร์
+MoonLogo.BackgroundTransparency = 1
+MoonLogo.Parent = TopBar
+
+local Title = Instance.new("TextLabel")
+Title.Text = "LUNAR HUB | Blox Fruits"
+Title.Position = UDim2.new(0, 50, 0, 0)
+Title.Size = UDim2.new(1, -100, 1, 0)
+Title.TextColor3 = Color3.fromRGB(50, 50, 50)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 15
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+Title.Parent = TopBar
+
+-- 3. [ SIDEBAR MENU ]
+local SideBar = Instance.new("Frame")
+SideBar.Size = UDim2.new(0, 60, 1, -45)
+SideBar.Position = UDim2.new(0, 0, 0, 45)
+SideBar.BackgroundColor3 = Color3.fromRGB(242, 242, 242)
+SideBar.BorderSizePixel = 0
+SideBar.Parent = MainFrame
+Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 12)
+
+-- 4. [ CONTENT AREA ]
+local Content = Instance.new("ScrollingFrame")
+Content.Size = UDim2.new(1, -75, 1, -60)
+Content.Position = UDim2.new(0, 70, 0, 55)
+Content.BackgroundTransparency = 1
+Content.CanvasSize = UDim2.new(0, 0, 2, 0)
+Content.ScrollBarThickness = 0
+Content.Parent = MainFrame
+
+local Layout = Instance.new("UIListLayout", Content)
+Layout.Padding = UDim.new(0, 10)
+
+-- 5. [ FUNCTIONS: ANTI-LAG & CHEATS ]
+
+-- ระบบลดกราฟิกให้กากลง (FPS Boost)
+local function OptimizeGame()
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.Material = Enum.Material.SmoothPlastic
+            v.Reflectance = 0
+        elseif v:IsA("Decal") or v:IsA("Texture") then
+            v.Transparency = 1
+        elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+            v.Enabled = false
+        end
+    end
+    game.Lighting.GlobalShadows = false
+    settings().Rendering.QualityLevel = 1
+end
+
+-- ระบบ Auto Farm (Logic)
 _G.AutoFarm = false
-Sec1:NewToggle("เริ่มฟาร์มเลเวล 1-2550", "ฟาร์มรับเควสให้อัตโนมัติทุกโลก", function(v) _G.AutoFarm = v end)
-_G.FastAttack = false
-Sec1:NewToggle("ตีรัว (Fast Attack)", "ตีไวระดับพระเจ้า", function(v) _G.FastAttack = v end)
-_G.AutoStats = false
-Sec1:NewToggle("อัปค่า Stats อัตโนมัติ", "ลง Melee และ Defense", function(v) _G.AutoStats = v end)
-
--- --- [ ช่องที่ 2: ตามล่าของแรร์ ] ---
-local Tab2 = Window:NewTab("หาของแรร์ ⚔️")
-local Sec2 = Tab2:NewSection("ภารกิจดาบและบอส")
-Sec2:NewButton("ตามล่าดาบ Saber", "ตีแชงคูสเอาริปเปอร์และดาบ", function() _G.Saber = true end)
-Sec2:NewButton("ภารกิจดาบ Yama", "ทำภารกิจดาบในโลก 3", function() _G.Yama = true end)
-Sec2:NewButton("ทำเควสดาบ Tushita", "เปิดประตูปราสาทเพื่อเอาดาบ", function() _G.Tushita = true end)
-_G.AutoBoss = false
-Sec2:NewToggle("ตีบอสทุกตัวที่เกิด", "เจอบอสตัวไหน ตีให้หมด", function(v) _G.AutoBoss = v end)
-
--- --- [ ช่องที่ 3: ลงดัน & ฟาร์ม Frag ] ---
-local Tab3 = Window:NewTab("ลงดันเจี้ยน 💎")
-local Sec3 = Tab3:NewSection("ระบบ Raid อัตโนมัติ")
-_G.AutoRaid = false
-Sec3:NewToggle("เริ่มลงดันออโต้", "สคริปต์จะซื้อชิปและตีให้เอง", function(v) _G.AutoRaid = v end)
-Sec3:NewButton("ซื้อชิปดันเจี้ยน (ไฟ)", "ซื้อชิปดันให้อัตโนมัติ", function() remote:InvokeServer("RaidsNpc", "Select", "Flame") end)
-
--- --- [ ช่องที่ 4: ผลไม้ & อื่นๆ ] ---
-local Tab4 = Window:NewTab("ผลปีศาจ/ESP 🍎")
-local Sec4 = Tab4:NewSection("จัดการไอเทมในแมพ")
-Sec4:NewButton("สุ่มผลปีศาจ", "สุ่มผลที่ NPC ให้อัตโนมัติ", function() remote:InvokeServer("Cousin", "Buy") end)
-_G.FruitESP = false
-Sec4:NewToggle("แสดงพิกัดผลไม้ (ESP)", "บอกตำแหน่งผลที่เกิดในแมพ", function(v) _G.FruitESP = v end)
-_G.AutoChest = false
-Sec4:NewToggle("เก็บกล่องเงินทั่วแมพ", "วาร์ปเก็บเงินอัตโนมัติ", function(v) _G.AutoChest = v end)
-
--- --- [[ ระบบประมวลผลมหาเทพ (The Master Logic) ]] ---
 task.spawn(function()
-    while wait() do
-        pcall(function()
-            local lp = game.Players.LocalPlayer
-            local char = lp.Character.HumanoidRootPart
-            
-            -- [ ระบบฟาร์มเลเวล & ขยายร่างมอน ]
-            if _G.AutoFarm then
-                for _, v in pairs(game.Workspace.Enemies:GetChildren()) do
-                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                        v.HumanoidRootPart.Size = Vector3.new(65, 65, 65)
-                        v.HumanoidRootPart.CanCollide = false
-                        v.HumanoidRootPart.CFrame = char.CFrame * CFrame.new(0, -6, 0)
-                        if _G.FastAttack then
-                            remote:InvokeServer("Attack", lp.Character:FindFirstChildOfClass("Tool") or lp.Backpack:FindFirstChildOfClass("Tool"))
-                        end
+    while task.wait() do
+        if _G.AutoFarm then
+            pcall(function()
+                for _, mob in pairs(game.Workspace.Enemies:GetChildren()) do
+                    if mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
+                        player.Character.HumanoidRootPart.CFrame = mob.HumanoidRootPart.CFrame * CFrame.new(0, 10, 0)
                     end
                 end
-            end
-
-            -- [ ระบบเก็บกล่องเงิน ]
-            if _G.AutoChest then
-                for _, v in pairs(game.Workspace:GetChildren()) do
-                    if v.Name:find("Chest") then
-                        char.CFrame = v.CFrame
-                        wait(0.05)
-                    end
-                end
-            end
-            
-            -- [ ระบบอัป Stats ]
-            if _G.AutoStats then
-                remote:InvokeServer("AddPoint", "Melee", 1)
-                remote:InvokeServer("AddPoint", "Defense", 1)
-            end
-        end)
+            end)
+        end
     end
 end)
+
+-- 6. [ UI COMPONENTS GENERATOR ]
+local function CreateToggle(text, callback)
+    local Bg = Instance.new("Frame")
+    Bg.Size = UDim2.new(1, -5, 0, 45)
+    Bg.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Bg.Parent = Content
+    Instance.new("UICorner", Bg).CornerRadius = UDim.new(0, 8)
+
+    local Txt = Instance.new("TextLabel")
+    Txt.Text = "  " .. text
+    Txt.Size = UDim2.new(1, 0, 1, 0)
+    Txt.BackgroundTransparency = 1
+    Txt.TextXAlignment = Enum.TextXAlignment.Left
+    Txt.Font = Enum.Font.GothamMedium
+    Txt.TextColor3 = Color3.fromRGB(80, 80, 80)
+    Txt.Parent = Bg
+
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0, 40, 0, 20)
+    Btn.Position = UDim2.new(1, -50, 0.5, -10)
+    Btn.BackgroundColor3 = Color3.fromRGB(210, 210, 210)
+    Btn.Text = ""
+    Btn.Parent = Bg
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(1, 0)
+
+    local state = false
+    Btn.MouseButton1Click:Connect(function()
+        state = not state
+        Btn.BackgroundColor3 = state and Color3.fromRGB(80, 220, 80) or Color3.fromRGB(210, 210, 210)
+        callback(state)
+    end)
+end
+
+-- [ เพิ่มปุ่มใช้งาน ]
+CreateToggle("SUPER ANTI-LAG (ลดแลค)", function(v) if v then OptimizeGame() end end)
+CreateToggle("AUTO FARM LEVEL", function(v) _G.AutoFarm = v end)
+CreateToggle("INFINITE JUMP", function(v) _G.InfJump = v end)
+
+-- 7. [ SYSTEM: DRAG & TOGGLE KEY ]
+local dragging, dragInput, dragStart, startPos
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+userInput.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+userInput.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+end)
+
+-- กดปุ่ม R-Shift เพื่อซ่อน/โชว์
+userInput.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.RightShift then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
+
+-- ระบบ Infinite Jump
+userInput.JumpRequest:Connect(function()
+    if _G.InfJump then player.Character.Humanoid:ChangeState("Jumping") end
+end)
+
+print("Lunar Hub Loaded! Press 'Right Shift' to hide/show.")
