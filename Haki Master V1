@@ -1,12 +1,10 @@
--- [[ Eleven Heavenly Way: Map Wipe Edition ]] --
--- สำหรับ Android (Delta) | รัศมี: 2000 (ครอบคลุมทั้งเกาะ)
+-- [[ Eleven Heavenly Way: Fixed for Android Delta ]] --
+-- แก้ไขปัญหา: กดปุ่มไม่ได้บนมือถือ | รัศมี: 2000
 
 local player = game.Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
-local hum = char:WaitForChild("Humanoid")
 
--- [[ ระบบ UI ]] --
+-- [[ ระบบ UI ใหม่สำหรับหน้าจอสัมผัส ]] --
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local StartBtn = Instance.new("TextButton")
@@ -14,58 +12,63 @@ local UICorner = Instance.new("UICorner")
 local UIStroke = Instance.new("UIStroke")
 
 ScreenGui.Parent = game.CoreGui
+ScreenGui.Name = "HeavenlyWayUI"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- ปรับตำแหน่งและขนาดให้กดง่าย (อยู่ฝั่งขวาบนเล็กน้อย ไม่ให้ทับปุ่มเดิมของเกม)
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-MainFrame.Position = UDim2.new(0.8, 0, 0.45, 0)
-MainFrame.Size = UDim2.new(0, 150, 0, 70)
+MainFrame.Position = UDim2.new(0.7, 0, 0.2, 0) -- ย้ายตำแหน่งขึ้นข้างบนหน่อย
+MainFrame.Size = UDim2.new(0, 140, 0, 60)
 MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Draggable = true -- คุณสามารถลากย้ายที่ได้เองถ้ามันบัง
+
 UICorner.Parent = MainFrame
-
 UIStroke.Parent = MainFrame
-UIStroke.Thickness = 3
-UIStroke.Color = Color3.fromRGB(255, 215, 0) -- ขอบสีทองแบบเทพเจ้า
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(255, 200, 0)
 
+-- ส่วนของปุ่มกด (ปรับให้รองรับ Touch โดยตรง)
 StartBtn.Parent = MainFrame
 StartBtn.Size = UDim2.new(1, 0, 1, 0)
 StartBtn.Text = "ล้างเกาะ!"
 StartBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 StartBtn.BackgroundTransparency = 1
 StartBtn.Font = Enum.Font.GothamBold
-StartBtn.TextSize = 20
+StartBtn.TextSize = 18
 
--- [[ ฟังก์ชันมหาเวทย์วิถีสวรรค์ ]] --
-StartBtn.MouseButton1Click:Connect(function()
-    -- 1. ประกาศศักดา (ประกาศแชท)
+-- [[ ฟังก์ชันการทำงาน ]] --
+local function runHeavenlyWay()
     game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
-        "[ วิถีสวรรค์: มหันตภัยถมเกาะโดย Macbook Eleven... จงหายไปให้หมด! ]", "All"
+        "[ วิถีสวรรค์: มหันตภัยถมเกาะโดย Macbook Eleven... ]", "All"
     )
     
-    -- 2. ทะยานขึ้นสู่ท้องฟ้า (สูงมากเพื่อให้เห็นทั่วเกาะ)
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
     local bv = Instance.new("BodyVelocity")
-    bv.Velocity = Vector3.new(0, 100, 0)
+    bv.Velocity = Vector3.new(0, 120, 0)
     bv.MaxForce = Vector3.new(0, math.huge, 0)
     bv.Parent = root
     
-    task.wait(3.5) -- บินขึ้นไปสูงๆ
+    task.wait(3)
     bv:Destroy()
     
-    -- 3. เอฟเฟกต์แสงระเบิดมหาศาล
     local exp = Instance.new("Explosion")
     exp.Position = root.Position
-    exp.BlastRadius = 2000 -- รัศมีถมเกาะ
-    exp.BlastPressure = 0 -- ไม่ให้ของกระเด็นจนเซิร์ฟค้าง แต่เน้นฆ่า
+    exp.BlastRadius = 2500 -- ขยายให้กว้างขึ้นอีก
     exp.Parent = workspace
     
-    -- 4. ส่งทุกคนไปเกิดใหม่ (Reset Everyone)
     for _, v in pairs(game.Players:GetPlayers()) do
         if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") then
-            -- ไม่ต้องเช็คระยะ เพราะรัศมี 2000 คือทั่วแมพ Brookhaven แล้ว
             v.Character.Humanoid.Health = 0
         end
     end
     
-    -- 5. ตัวเราสละชีพเพื่อความเท่
     task.wait(0.1)
-    hum.Health = 0
-end)
+    player.Character.Humanoid.Health = 0
+end
+
+-- แก้ไขจุดนี้: ใช้ทั้ง Click และ Touch เพื่อให้กดได้แน่นอน
+StartBtn.MouseButton1Click:Connect(runHeavenlyWay)
+StartBtn.TouchTap:Connect(runHeavenlyWay)
