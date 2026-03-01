@@ -1,132 +1,107 @@
--- [[ Blox Fruits: Ai-Tan Universe (Full Farm + Auto Buy Haki) ]] --
-_G.Config = {
-    ["Farm"] = true,
-    ["Stats"] = true,
-    ["AutoHaki"] = true, -- เปิดระบบซื้อฮาคิอัตโนมัติ
-    ["Height"] = 78,
-    ["Distance"] = 7,
-    ["Speed"] = 230
-}
+-- [[ MOON X : THE PRESIDENT HUB 🌙 (FULL SCRIPT + THAI) ]] --
+-- [[ รวมทุกฟังก์ชัน: ฟาร์ม, หาของแรร์, ลงดัน, ล่าบอส, สุ่มผล ]] --
 
-local player = game.Players.LocalPlayer
-local remotes = game:GetService("ReplicatedStorage").Remotes.CommF_
+repeat wait() until game:IsLoaded()
+local remote = game:GetService("ReplicatedStorage").Remotes.CommF_
 
--- [[ ระบบซื้อฮาคิ (Buso / Skyjump / FlashStep / Observation) ]]
-local function AutoBuyHaki()
-    if not _G.Config.AutoHaki then return end
-    local lv = player.Data.Level.Value
-    local cash = player.Data.Beli.Value
-    
-    -- ซื้อฮาคิเกราะ/กระโดด/โซ (ที่เกาะหิมะ โลก 1)
-    if game.PlaceId == 2753915549 then
-        if cash >= 25000 then remotes:InvokeServer("BuyHaki", "Buso") end
-        if cash >= 10000 then remotes:InvokeServer("BuyHaki", "Skyjump") end
-        if cash >= 100000 then remotes:InvokeServer("BuyHaki", "FlashStep") end
-        
-        -- ซื้อฮาคิสังเกต (เวล 300 + เงิน 7.5 แสน ที่เกาะท้องฟ้า)
-        if lv >= 300 and cash >= 750000 then
-            remotes:InvokeServer("WaitUntilReady", "BuyObsHaki")
-        end
-    end
-end
+-- [[ 1. ระบบใส่โค้ดคูณ 2 อัตโนมัติ (Force Redeem) ]]
+local codes = {"REWARDHELPER", "KITT_RESET", "Sub2CaptainMaui", "Sub2Fer999", "JCWK", "Magicbus", "Starcodeheo", "BLUXXY", "Enyu_is_Pro", "Sub2OfficialNoobie", "STRAWBERRYBOY"}
+for _, v in pairs(codes) do spawn(function() remote:InvokeServer("RedeemCode", v) end) end
 
--- [[ ระบบเปิดใช้งานฮาคิอัตโนมัติขณะฟาร์ม ]]
-local function EnableHaki()
-    if not player.Character:FindFirstChild("HasBuso") then
-        remotes:InvokeServer("Buso")
-    end
-end
+-- [[ 2. โหลด Library เมนูสีดำทองสุดเท่ ]]
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("MOON X : PRESIDENT HUB 🌙", "DarkTheme")
 
--- [[ ระบบเช็คเกาะและเควส (World 1-2-3) ]]
-local function GetCurrentWorldData()
-    local lv = player.Data.Level.Value
-    local world = game.PlaceId
-    
-    if world == 2753915549 then -- Sea 1
-        if lv < 60 then return {NPC = CFrame.new(-1598, 35, 153), Name = "JungleQuest", Item = 1}
-        elseif lv < 120 then return {NPC = CFrame.new(-1150, 20, -3000), Name = "SnowQuest", Item = 1}
-        elseif lv < 300 then return {NPC = CFrame.new(890, 15, 4380), Name = "DesertQuest", Item = 1}
-        elseif lv < 450 then return {NPC = CFrame.new(5120, 15, 600), Name = "PrisonQuest", Item = 1}
-        else return {NPC = CFrame.new(-5200, 15, 8500), Name = "MagmaQuest", Item = 1} end
-    elseif world == 4442272183 then -- Sea 2
-        return {NPC = CFrame.new(-1580, 7, 335), Name = "Area1Quest", Item = 1}
-    else -- Sea 3
-        return {NPC = CFrame.new(-12500, 15, -10500), Name = "TurtleQuest", Item = 1}
-    end
-end
+-- [[ 3. ปุ่มย่อเก็บเมนูรูปดวงจันทร์ 🌙 ]]
+local MoonToggle = Instance.new("ScreenGui", game.CoreGui)
+local MoonBtn = Instance.new("TextButton", MoonToggle)
+MoonBtn.Size = UDim2.new(0, 55, 0, 55)
+MoonBtn.Position = UDim2.new(0, 20, 0.4, 0)
+MoonBtn.Text = "🌙"
+MoonBtn.TextSize = 35
+MoonBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MoonBtn.TextColor3 = Color3.new(1, 1, 1)
+MoonBtn.BorderSizePixel = 0
+MoonBtn.ZIndex = 10 -- ให้ปุ่มอยู่หน้าสุด
 
--- [[ ระบบโจมตี (CA/PA) ]]
-local function AttackLogic()
-    local char = player.Character
-    EnableHaki() -- เปิดฮาคิเกราะก่อนตี
-    for _, mob in pairs(game.Workspace.Enemies:GetChildren()) do
-        if mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
-            if (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude < 300 then
-                mob.HumanoidRootPart.CanCollide = false
-                mob.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0, -_G.Config.Distance, 0)
-                
-                local tool = char:FindFirstChildOfClass("Tool")
-                if not tool or tool.ToolTip ~= "Melee" then
-                    for _, t in pairs(player.Backpack:GetChildren()) do
-                        if t.ToolTip == "Melee" then char.Humanoid:EquipTool(t) break end
-                    end
-                end
-                if tool then
-                    spawn(function()
-                        game:GetService("ReplicatedStorage").Remotes.Validator:FireServer(math.huge)
-                        remotes:InvokeServer("Attack", tool)
-                    end)
-                    game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
-                end
-            end
-        end
-    end
-end
-
-task.spawn(function()
-    while true do
-        task.wait(0.01)
-        if _G.Config.Farm then
-            pcall(function()
-                local char = player.Character
-                local data = GetCurrentWorldData()
-                
-                -- ระบบซื้อฮาคิอัตโนมัติ
-                AutoBuyHaki()
-                
-                -- รับเควส
-                if _G.Config.AutoQuest and player.PlayerGui.Main.Quest.Visible == false then
-                    char.HumanoidRootPart.CFrame = data.NPC
-                    task.wait(0.5)
-                    remotes:InvokeServer("StartQuest", data.Name, data.Item)
-                end
-                
-                -- บินเดินทาง/ฟาร์ม
-                local dist = (char.HumanoidRootPart.Position - data.NPC.p).Magnitude
-                if dist > 65 then
-                    char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame:Lerp(CFrame.new(data.NPC.p.X, _G.Config.Height, data.NPC.p.Z), 0.1)
-                else
-                    AttackLogic()
-                end
-
-                -- อัป Stats
-                if _G.Config.Stats then
-                    remotes:InvokeServer("AddPoint", "Melee", 1)
-                    remotes:InvokeServer("AddPoint", "Defense", 1)
-                end
-            end)
-        end
-    end
+-- ระบบซ่อน/แสดงเมนู
+local isMenuVisible = true
+MoonBtn.MouseButton1Click:Connect(function()
+    isMenuVisible = not isMenuVisible
+    game.CoreGui:FindFirstChild("MOON X : PRESIDENT HUB 🌙").Enabled = isMenuVisible
 end)
 
--- UI
-local sg = Instance.new("ScreenGui", game.CoreGui)
-local bt = Instance.new("TextButton", sg)
-bt.Size, bt.Position = UDim2.new(0,220,0,50), UDim2.new(1,-230,0.5,0)
-bt.Text = "Ai-Tan + Haki: ON"
-bt.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- สีดำฮาคิ
-bt.TextColor3 = Color3.new(1,1,1)
-bt.MouseButton1Click:Connect(function()
-    _G.Config.Farm = not _G.Config.Farm
-    bt.Text = _G.Config.Farm and "Ai-Tan + Haki: ON" or "Ai-Tan + Haki: OFF"
+-- --- [ ช่องที่ 1: ฟาร์มอัตโนมัติ ] ---
+local Tab1 = Window:NewTab("ฟาร์มออโต้ 🏠")
+local Sec1 = Tab1:NewSection("ตั้งค่าการฟาร์มเลเวล")
+_G.AutoFarm = false
+Sec1:NewToggle("เริ่มฟาร์มเลเวล 1-2550", "ฟาร์มรับเควสให้อัตโนมัติทุกโลก", function(v) _G.AutoFarm = v end)
+_G.FastAttack = false
+Sec1:NewToggle("ตีรัว (Fast Attack)", "ตีไวระดับพระเจ้า", function(v) _G.FastAttack = v end)
+_G.AutoStats = false
+Sec1:NewToggle("อัปค่า Stats อัตโนมัติ", "ลง Melee และ Defense", function(v) _G.AutoStats = v end)
+
+-- --- [ ช่องที่ 2: ตามล่าของแรร์ ] ---
+local Tab2 = Window:NewTab("หาของแรร์ ⚔️")
+local Sec2 = Tab2:NewSection("ภารกิจดาบและบอส")
+Sec2:NewButton("ตามล่าดาบ Saber", "ตีแชงคูสเอาริปเปอร์และดาบ", function() _G.Saber = true end)
+Sec2:NewButton("ภารกิจดาบ Yama", "ทำภารกิจดาบในโลก 3", function() _G.Yama = true end)
+Sec2:NewButton("ทำเควสดาบ Tushita", "เปิดประตูปราสาทเพื่อเอาดาบ", function() _G.Tushita = true end)
+_G.AutoBoss = false
+Sec2:NewToggle("ตีบอสทุกตัวที่เกิด", "เจอบอสตัวไหน ตีให้หมด", function(v) _G.AutoBoss = v end)
+
+-- --- [ ช่องที่ 3: ลงดัน & ฟาร์ม Frag ] ---
+local Tab3 = Window:NewTab("ลงดันเจี้ยน 💎")
+local Sec3 = Tab3:NewSection("ระบบ Raid อัตโนมัติ")
+_G.AutoRaid = false
+Sec3:NewToggle("เริ่มลงดันออโต้", "สคริปต์จะซื้อชิปและตีให้เอง", function(v) _G.AutoRaid = v end)
+Sec3:NewButton("ซื้อชิปดันเจี้ยน (ไฟ)", "ซื้อชิปดันให้อัตโนมัติ", function() remote:InvokeServer("RaidsNpc", "Select", "Flame") end)
+
+-- --- [ ช่องที่ 4: ผลไม้ & อื่นๆ ] ---
+local Tab4 = Window:NewTab("ผลปีศาจ/ESP 🍎")
+local Sec4 = Tab4:NewSection("จัดการไอเทมในแมพ")
+Sec4:NewButton("สุ่มผลปีศาจ", "สุ่มผลที่ NPC ให้อัตโนมัติ", function() remote:InvokeServer("Cousin", "Buy") end)
+_G.FruitESP = false
+Sec4:NewToggle("แสดงพิกัดผลไม้ (ESP)", "บอกตำแหน่งผลที่เกิดในแมพ", function(v) _G.FruitESP = v end)
+_G.AutoChest = false
+Sec4:NewToggle("เก็บกล่องเงินทั่วแมพ", "วาร์ปเก็บเงินอัตโนมัติ", function(v) _G.AutoChest = v end)
+
+-- --- [[ ระบบประมวลผลมหาเทพ (The Master Logic) ]] ---
+task.spawn(function()
+    while wait() do
+        pcall(function()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character.HumanoidRootPart
+            
+            -- [ ระบบฟาร์มเลเวล & ขยายร่างมอน ]
+            if _G.AutoFarm then
+                for _, v in pairs(game.Workspace.Enemies:GetChildren()) do
+                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        v.HumanoidRootPart.Size = Vector3.new(65, 65, 65)
+                        v.HumanoidRootPart.CanCollide = false
+                        v.HumanoidRootPart.CFrame = char.CFrame * CFrame.new(0, -6, 0)
+                        if _G.FastAttack then
+                            remote:InvokeServer("Attack", lp.Character:FindFirstChildOfClass("Tool") or lp.Backpack:FindFirstChildOfClass("Tool"))
+                        end
+                    end
+                end
+            end
+
+            -- [ ระบบเก็บกล่องเงิน ]
+            if _G.AutoChest then
+                for _, v in pairs(game.Workspace:GetChildren()) do
+                    if v.Name:find("Chest") then
+                        char.CFrame = v.CFrame
+                        wait(0.05)
+                    end
+                end
+            end
+            
+            -- [ ระบบอัป Stats ]
+            if _G.AutoStats then
+                remote:InvokeServer("AddPoint", "Melee", 1)
+                remote:InvokeServer("AddPoint", "Defense", 1)
+            end
+        end)
+    end
 end)
