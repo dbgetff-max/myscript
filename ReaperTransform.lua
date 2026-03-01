@@ -1,120 +1,137 @@
+--[[
+  REAPER TRANSFORMATION V3 (CLOAK, MASK, WORKING SCYTHE)
+  ปรับปรุง: ชุดดำ, หน้ากาก, เคียวฟันได้, ควันสมจริง
+--]]
+
 local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local isTransformed = false -- สถานะตัวแปรเช็คการแปลงร่าง
+local mouse = player:GetMouse()
+local isTransformed = false
+local items = {} -- เก็บของที่เสกออกมาเพื่อลบทีเดียว
 
--- === สร้าง GUI ปุ่มกด ===
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ReaperGui"
-screenGui.Parent = player:WaitForChild("PlayerGui")
+-- === ฟังก์ชันสร้างปุ่ม GUI ===
+local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+screenGui.ResetOnSpawn = false
+local btn = Instance.new("TextButton", screenGui)
+btn.Size = UDim2.new(0, 150, 0, 50)
+btn.Position = UDim2.new(0.5, -75, 0.05, 0)
+btn.Text = "แปลงร่างยมทูต"
+btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", btn)
 
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Name = "ToggleButton"
-toggleBtn.Size = UDim2.new(0, 150, 0, 50)
-toggleBtn.Position = UDim2.new(0.5, -75, 0.1, 0) -- อยู่ตรงกลางด้านบน
-toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.Text = "Reaper: OFF"
-toggleBtn.Font = Enum.Font.SourceSansBold
-toggleBtn.TextSize = 20
-toggleBtn.Parent = screenGui
-
--- ใส่ความโค้งมนให้ปุ่ม
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = toggleBtn
-
--- === ฟังก์ชันจัดการเคียว ===
-local currentScythe = nil
-
-local function RemoveScythe()
-	if currentScythe then
-		currentScythe:Destroy()
-		currentScythe = nil
-	end
+-- === ฟังก์ชันกวัดแกว่งเคียว (Attack Animation) ===
+local isAttacking = false
+local function Attack()
+    if isAttacking or not isTransformed then return end
+    isAttacking = true
+    
+    local char = player.Character
+    local scythe = char:FindFirstChild("ReaperScytheModel")
+    if scythe then
+        -- เอฟเฟกต์หมุนเคียวแบบง่ายๆ (CFrame Animation)
+        local handle = scythe:FindFirstChild("Handle")
+        if handle then
+            for i = 1, 10 do
+                handle.CFrame = handle.CFrame * CFrame.Angles(math.rad(10), 0, 0)
+                task.wait(0.01)
+            end
+            task.wait(0.1)
+            for i = 1, 10 do
+                handle.CFrame = handle.CFrame * CFrame.Angles(math.rad(-10), 0, 0)
+                task.wait(0.01)
+            end
+        end
+    end
+    isAttacking = false
 end
 
-local function CreateScythe(char)
-	local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
-	if not rightHand then return end
+-- === ฟังก์ชันหลัก: แปลงร่าง ===
+local function Transform()
+    local char = player.Character
+    if not char then return end
+    
+    -- 1. เปลี่ยนสีตัวและชุด (Black Cloak)
+    for _, v in pairs(char:GetChildren()) do
+        if v:IsA("BasePart") then
+            table.insert(items, {part = v, oldColor = v.Color}) -- จำสีเดิมไว้
+            v.Color = Color3.fromRGB(0, 0, 0) -- เปลี่ยนเป็นสีดำ
+        elseif v:IsA("Accessory") or v:IsA("Shirt") or v:IsA("Pants") then
+            v.Parent = game.Lighting -- ซ่อนชุดเดิม
+            table.insert(items, {item = v})
+        end
+    end
 
-	local scytheModel = Instance.new("Model")
-	scytheModel.Name = "ReaperScythe"
-	scytheModel.Parent = char
+    -- 2. ใส่หน้ากาก (Skull/Mask)
+    local head = char:WaitForChild("Head")
+    local mask = Instance.new("Part", char)
+    mask.Size = Vector3.new(1.1, 1.1, 1.1)
+    mask.BrickColor = BrickColor.new("White") -- หน้ากากสีขาวกะโหลก
+    mask.Material = Enum.Material.Neon
+    local mWeld = Instance.new("WeldConstraint", mask)
+    mWeld.Part0 = mask
+    mWeld.Part1 = head
+    mask.CFrame = head.CFrame
+    table.insert(items, {obj = mask})
 
-	-- ด้ามเคียว
-	local handle = Instance.new("Part")
-	handle.Size = Vector3.new(0.2, 7, 0.2)
-	handle.BrickColor = BrickColor.new("Really black")
-	handle.Material = Enum.Material.Metal
-	handle.CanCollide = false
-	handle.Parent = scytheModel
+    -- 3. เสกเคียวสีดำ (Working Scythe)
+    local scytheModel = Instance.new("Model", char)
+    scytheModel.Name = "ReaperScytheModel"
+    
+    local handle = Instance.new("Part", scytheModel)
+    handle.Name = "Handle"
+    handle.Size = Vector3.new(0.2, 7, 0.2)
+    handle.Color = Color3.fromRGB(10, 10, 10)
+    handle.CanCollide = false
+    
+    local blade = Instance.new("Part", scytheModel)
+    blade.Size = Vector3.new(0.2, 4, 1.5)
+    blade.Color = Color3.fromRGB(0, 0, 0)
+    blade.Material = Enum.Material.Neon
+    blade.CanCollide = false
+    
+    local w1 = Instance.new("WeldConstraint", blade)
+    w1.Part0 = handle
+    w1.Part1 = blade
+    blade.CFrame = handle.CFrame * CFrame.new(0, 3, 1) * CFrame.Angles(math.rad(45),0,0)
+    
+    local w2 = Instance.new("WeldConstraint", handle)
+    w2.Part0 = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
+    w2.Part1 = handle
+    handle.CFrame = (char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")).CFrame
+    
+    table.insert(items, {obj = scytheModel})
 
-	-- ใบมีด
-	local blade = Instance.new("Part")
-	blade.Size = Vector3.new(0.2, 3, 1)
-	blade.BrickColor = BrickColor.new("Really black")
-	blade.Material = Enum.Material.Neon
-	blade.CanCollide = false
-	blade.Parent = scytheModel
-
-	-- เชื่อมใบมีดกับด้าม
-	local bladeWeld = Instance.new("WeldConstraint")
-	bladeWeld.Part0 = handle
-	bladeWeld.Part1 = blade
-	bladeWeld.Parent = blade
-	blade.CFrame = handle.CFrame * CFrame.new(0, 3, 1.5) * CFrame.Angles(math.rad(45), 0, 0)
-
-	-- เชื่อมเคียวกับมือ
-	local handWeld = Instance.new("WeldConstraint")
-	handWeld.Part0 = rightHand
-	handWeld.Part1 = handle
-	handWeld.Parent = handle
-	handle.CFrame = rightHand.CFrame * CFrame.Angles(math.rad(-90), 0, 0)
-
-	currentScythe = scytheModel
+    -- 4. ควันดำ (พุ่งตลอดเวลาที่แปลงร่าง)
+    local attachment = Instance.new("Attachment", char.HumanoidRootPart)
+    local smoke = Instance.new("ParticleEmitter", attachment)
+    smoke.Color = ColorSequence.new(Color3.fromRGB(0,0,0))
+    smoke.Size = NumberSequence.new(5, 8)
+    smoke.Rate = 50
+    smoke.Lifetime = NumberRange.new(1, 2)
+    table.insert(items, {obj = attachment})
 end
 
--- === ฟังก์ชันจัดการควัน ===
-local function CreateSmokeEffect(char)
-	local hrp = char:WaitForChild("HumanoidRootPart")
-	local attachment = Instance.new("Attachment", hrp)
-	
-	local smoke = Instance.new("ParticleEmitter")
-	smoke.Color = ColorSequence.new(Color3.fromRGB(0, 0, 0))
-	smoke.Size = NumberSequence.new(5, 10)
-	smoke.Transparency = NumberSequence.new(0.5, 1)
-	smoke.Lifetime = NumberRange.new(1.5, 2.5)
-	smoke.Rate = 200
-	smoke.Speed = NumberRange.new(5, 12)
-	smoke.Parent = attachment
-	
-	-- ควันพ่นออกมา 4 วินาทีแล้วหยุด
-	task.delay(4, function()
-		smoke.Enabled = false
-		game:GetService("Debris"):AddItem(attachment, 3)
-	end)
+-- === ฟังก์ชันคืนร่าง ===
+local function UnTransform()
+    for _, data in pairs(items) do
+        if data.obj then data.obj:Destroy() end
+        if data.part and data.oldColor then data.part.Color = data.oldColor end
+        if data.item then data.item.Parent = player.Character end
+    end
+    items = {}
 end
 
--- === ทำงานเมื่อกดปุ่ม ===
-toggleBtn.MouseButton1Click:Connect(function()
-	local char = player.Character
-	if not char then return end
-
-	if not isTransformed then
-		-- [แปลงร่าง]
-		isTransformed = true
-		toggleBtn.Text = "Reaper: ON"
-		toggleBtn.TextColor3 = Color3.fromRGB(255, 0, 0) -- เปลี่ยนตัวหนังสือเป็นสีแดง
-		
-		CreateSmokeEffect(char) -- เอฟเฟกต์ควันดำ
-		CreateScythe(char) -- เสกเคียวสีดำ
-		
-	else
-		-- [คืนร่าง]
-		isTransformed = false
-		toggleBtn.Text = "Reaper: OFF"
-		toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-		
-		RemoveScythe() -- ลบเคียวทิ้ง
-	end
+-- === ระบบปุ่มกด และ คลิกฟัน ===
+btn.MouseButton1Click:Connect(function()
+    if not isTransformed then
+        isTransformed = true
+        btn.Text = "คืนร่างเดิม"
+        Transform()
+    else
+        isTransformed = false
+        btn.Text = "แปลงร่างยมทูต"
+        UnTransform()
+    end
 end)
+
+mouse.Button1Down:Connect(Attack) -- คลิกเมาส์เพื่อฟัน
