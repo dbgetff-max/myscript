@@ -1,68 +1,71 @@
--- [[ CHEATING PRO MASTER V1 - ULTRA THIN GREEN FOV ]] --
--- แก้ไข: วงกลมสีเขียว "บางพิเศษ" (Ultra Thin) เหมือนเส้นขีดเล็กๆ
+-- [[ CHEATING PRO MASTER V1 - FIX LOCK & VISIBLE FOV ]] --
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local RunService = game:GetService("RunService")
 
--- [[ ตั้งค่าระยะ ]] --
-_G.ShootRange = 200     -- ระยะยิง 200 เมตร
-_G.FOV_Radius = 120     -- ปรับขนาดวงกลมตามที่คุณต้องการ (ตอนนี้ตั้งไว้กลางๆ)
+-- [[ การตั้งค่า ]] --
+_G.FOV_Radius = 150 -- ปรับวงกลมให้ใหญ่ขึ้นนิดนึงเพื่อให้ล็อคง่าย
+_G.ShootRange = 300 -- ระยะยิงไกลขึ้น
 
--- 1. สร้างวงกลม FOV สีเขียว (เวอร์ชันบางเฉียบพิเศษ)
+-- 1. วงกลมสีเขียว (ปรับให้มองเห็นชัดขึ้น)
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Visible = true
-FOVCircle.Color = Color3.fromRGB(0, 255, 120) -- สีเขียวสว่าง
-FOVCircle.Thickness = 0.01                    -- ความหนา "บางระดับสูงสุด" ตามที่ขอ
-FOVCircle.NumSides = 100                      -- เพิ่มด้านให้วงกลมดูเนียนไม่เป็นเหลี่ยม
+FOVCircle.Color = Color3.fromRGB(0, 255, 0) 
+FOVCircle.Thickness = 1.5 -- ปรับความหนาให้มองเห็นได้ชัด
+FOVCircle.NumSides = 64
 FOVCircle.Radius = _G.FOV_Radius
 FOVCircle.Filled = false
-FOVCircle.Transparency = 0.3                  -- จางๆ เพื่อความบางเหมือนเส้นแบ่งในแอป
+FOVCircle.Transparency = 0.7 
 
--- 2. ระบบ ESP แยกสีทีม (โจร=แดง, นักโทษ=ส้ม, ตำรวจ=ฟ้า)
+-- 2. ระบบ ESP แยกสี (เน้นสีชัดๆ ตามภาพที่คุณส่งมา)
 local function CreateESP(Player)
     Player.CharacterAdded:Connect(function(Character)
         local Head = Character:WaitForChild("Head", 10)
         local bgui = Instance.new("BillboardGui", Head)
-        bgui.Name = "MasterESP"
         bgui.AlwaysOnTop = true
         bgui.Size = UDim2.new(0, 200, 0, 50)
         bgui.StudsOffset = Vector3.new(0, 2.5, 0)
         local nametag = Instance.new("TextLabel", bgui)
         nametag.BackgroundTransparency = 1
         nametag.Size = UDim2.new(1, 0, 1, 0)
-        nametag.TextSize = 15
+        nametag.TextSize = 18 -- ตัวใหญ่ขึ้น
         nametag.Font = Enum.Font.SourceSansBold
-        nametag.TextStrokeTransparency = 0.5 
+        nametag.TextStrokeTransparency = 0
         
         RunService.Heartbeat:Connect(function()
             if Player and Player.Parent and Character and Character:FindFirstChild("Head") then
                 local team = Player.Team and Player.Team.Name or "Neutral"
                 nametag.Text = Player.Name .. " [" .. team .. "]"
-                if team == "Police" or team == "Guards" then nametag.TextColor3 = Color3.fromRGB(0, 191, 255)
-                elseif team == "Criminals" then nametag.TextColor3 = Color3.fromRGB(255, 0, 50)
-                elseif team == "Prisoners" then nametag.TextColor3 = Color3.fromRGB(255, 170, 0)
+                -- ปรับสีตามภาพถ่าย
+                if team == "Police" or team == "Guards" then nametag.TextColor3 = Color3.fromRGB(0, 162, 255)
+                elseif team == "Criminals" then nametag.TextColor3 = Color3.fromRGB(255, 0, 0)
+                elseif team == "Inmates" or team == "Prisoners" then nametag.TextColor3 = Color3.fromRGB(255, 165, 0)
                 else nametag.TextColor3 = Color3.fromRGB(255, 255, 255) end
             else bgui:Destroy() end
         end)
     end)
 end
 
--- 3. ระบบล็อคเป้าและสั่งยิง
-local function GetTargetInFOV()
+-- 3. ฟังก์ชันล็อคเป้า (เน้นล็อคหัวให้โดนชัวร์ๆ)
+local function GetClosestTarget()
     local target = nil
-    local dist = math.huge
+    local shortestMouseDist = _G.FOV_Radius
+
     for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Team ~= LocalPlayer.Team and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
-            local screenPos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
-            if onScreen then
-                local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if mouseDist < _G.FOV_Radius then
-                    local worldDist = (LocalPlayer.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude
-                    if worldDist < _G.ShootRange and mouseDist < dist then
-                        target = v.Character.HumanoidRootPart
-                        dist = mouseDist
+        if v ~= LocalPlayer and v.Team ~= LocalPlayer.Team then
+            if v.Character and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
+                if onScreen then
+                    local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                    if mouseDist < shortestMouseDist then
+                        -- เช็คระยะห่างตัวละครด้วย
+                        local worldDist = (LocalPlayer.Character.HumanoidRootPart.Position - v.Character.Head.Position).Magnitude
+                        if worldDist < _G.ShootRange then
+                            target = v.Character.Head
+                            shortestMouseDist = mouseDist
+                        end
                     end
                 end
             end
@@ -71,12 +74,14 @@ local function GetTargetInFOV()
     return target
 end
 
+-- 4. รันระบบยิง
 RunService.RenderStepped:Connect(function()
     FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
     if tool and tool:FindFirstChild("RemoteEvent") then
-        local targetPart = GetTargetInFOV()
+        local targetPart = GetClosestTarget()
         if targetPart then
+            -- ส่งข้อมูลยิงไปที่ "หัว" ของเป้าหมาย
             tool.RemoteEvent:FireServer(targetPart.Position)
         end
     end
@@ -84,5 +89,3 @@ end)
 
 for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
 Players.PlayerAdded:Connect(CreateESP)
-
-print("Cheating Pro Master V1: อัปเดตวงกลมบางเฉียบสีเขียวแล้ว!")
