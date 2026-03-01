@@ -1,0 +1,93 @@
+-- [[ Macbook Eleven: Emperor Control Hub (Haki Custom) ]] --
+-- สร้างเอง: มีปุ่มเปิด/ปิด และระบบเลือกใช้งาน
+
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+local HakiEnabled = false -- สถานะเปิด/ปิดฮาคิ
+local cooldown = false
+
+-- [[ ส่วนของ UI ]] --
+local ScreenGui = Instance.new("ScreenGui")
+local MainButton = Instance.new("TextButton")
+local UICorner = Instance.new("UICorner")
+
+ScreenGui.Parent = game.CoreGui
+ScreenGui.Name = "ElevenHakiHub"
+
+-- ตั้งค่าปุ่มหลัก
+MainButton.Parent = ScreenGui
+MainButton.Size = UDim2.new(0, 150, 0, 45)
+MainButton.Position = UDim2.new(0.8, 0, 0.15, 0)
+MainButton.Text = "Haki: OFF"
+MainButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40) -- สีเทาเข้มตอนปิด
+MainButton.TextColor3 = Color3.new(1, 1, 1)
+MainButton.Font = Enum.Font.GothamBold
+MainButton.TextSize = 14
+
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainButton
+
+-- [[ ฟังก์ชันหลักของฮาคิ ]] --
+local function releaseHaki()
+    if not HakiEnabled or cooldown then return end
+    cooldown = true
+    
+    -- เอฟเฟกต์ประกาศศักดา
+    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
+        "[ พลังแห่งราชันย์: จงสยบแทบเท้า Macbook Eleven! ]", 
+        "All"
+    )
+
+    -- เอฟเฟกต์หน้าจอสั่นสะเทือน
+    local cam = workspace.CurrentCamera
+    spawn(function()
+        for i = 1, 20 do
+            cam.CFrame = cam.CFrame * CFrame.new(math.random(-2,2)/10, math.random(-2,2)/10, 0)
+            wait(0.01)
+        end
+    end)
+
+    -- คำสั่งสยบคนรอบข้าง (รัศมี 30 หน่วย)
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (player.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude
+            if dist <= 30 then
+                -- ทำให้สลบ (PlatformStand)
+                v.Character.Humanoid.PlatformStand = true
+                
+                -- แรงกระแทกเบาๆ ไม่ให้ตัวปลิวหายไป (เน้นแค่สลบ)
+                local push = Instance.new("BodyVelocity")
+                push.Velocity = (v.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Unit * 15
+                push.MaxForce = Vector3.new(10000, 10000, 10000)
+                push.Parent = v.Character.HumanoidRootPart
+                
+                delay(0.5, function() push:Destroy() end)
+                delay(4, function() v.Character.Humanoid.PlatformStand = false end) -- ฟื้นใน 4 วินาที
+            end
+        end
+    end
+
+    wait(3) -- คูลดาวน์สั้นๆ
+    cooldown = false
+end
+
+-- [[ ระบบเปิด/ปิดปุ่ม ]] --
+MainButton.MouseButton1Click:Connect(function()
+    HakiEnabled = not HakiEnabled
+    if HakiEnabled then
+        MainButton.Text = "Haki: ON"
+        MainButton.BackgroundColor3 = Color3.fromRGB(120, 0, 200) -- สีม่วงฮาคิ
+        print("ปลดปล่อยพลังฮาคิราชันย์!")
+    else
+        MainButton.Text = "Haki: OFF"
+        MainButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        print("ผนึกพลัง")
+    end
+end)
+
+-- กด H เพื่อใช้ (ถ้าเปิดปุ่ม ON อยู่)
+mouse.KeyDown:Connect(function(key)
+    if key:lower() == "h" then
+        releaseHaki()
+    end
+end)
