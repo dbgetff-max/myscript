@@ -1,74 +1,59 @@
--- [[ Eleven Heavenly Way: Fixed for Android Delta ]] --
--- แก้ไขปัญหา: กดปุ่มไม่ได้บนมือถือ | รัศมี: 2000
+-- [[ Eleven's Nightmare: Jumpscare & Map Wipe ]] --
+-- คอนเซปต์: เสียงดังสนั่น + จอขาว + รีเซ็ตทั้งแมพ
 
 local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
 
--- [[ ระบบ UI ใหม่สำหรับหน้าจอสัมผัส ]] --
+-- [[ ระบบ UI หน้าสุดเสมอ ]] --
 local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local StartBtn = Instance.new("TextButton")
-local UICorner = Instance.new("UICorner")
-local UIStroke = Instance.new("UIStroke")
-
 ScreenGui.Parent = game.CoreGui
-ScreenGui.Name = "HeavenlyWayUI"
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 999999
 
--- ปรับตำแหน่งและขนาดให้กดง่าย (อยู่ฝั่งขวาบนเล็กน้อย ไม่ให้ทับปุ่มเดิมของเกม)
+local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-MainFrame.Position = UDim2.new(0.7, 0, 0.2, 0) -- ย้ายตำแหน่งขึ้นข้างบนหน่อย
-MainFrame.Size = UDim2.new(0, 140, 0, 60)
-MainFrame.Active = true
-MainFrame.Draggable = true -- คุณสามารถลากย้ายที่ได้เองถ้ามันบัง
+MainFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+MainFrame.Position = UDim2.new(0.4, 0, 0.02, 0) -- ไว้บนสุดของจอ
+MainFrame.Size = UDim2.new(0, 180, 0, 50)
+MainFrame.Draggable = true
 
-UICorner.Parent = MainFrame
-UIStroke.Parent = MainFrame
-UIStroke.Thickness = 2
-UIStroke.Color = Color3.fromRGB(255, 200, 0)
-
--- ส่วนของปุ่มกด (ปรับให้รองรับ Touch โดยตรง)
+local StartBtn = Instance.new("TextButton")
 StartBtn.Parent = MainFrame
 StartBtn.Size = UDim2.new(1, 0, 1, 0)
-StartBtn.Text = "ล้างเกาะ!"
-StartBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+StartBtn.Text = "ปล่อยคำสาป (สะดุ้งทั้งเกาะ)"
+StartBtn.TextColor3 = Color3.new(1, 1, 1)
 StartBtn.BackgroundTransparency = 1
 StartBtn.Font = Enum.Font.GothamBold
-StartBtn.TextSize = 18
+StartBtn.TextSize = 14
 
--- [[ ฟังก์ชันการทำงาน ]] --
-local function runHeavenlyWay()
+-- [[ ฟังก์ชันคำสาป ]] --
+local function LaunchNightmare()
+    -- 1. ประกาศข้อความข่มขวัญ
     game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
-        "[ วิถีสวรรค์: มหันตภัยถมเกาะโดย Macbook Eleven... ]", "All"
+        "หลับใหลไปในฝันร้ายของ Macbook Eleven...!", "All"
     )
-    
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
 
-    local bv = Instance.new("BodyVelocity")
-    bv.Velocity = Vector3.new(0, 120, 0)
-    bv.MaxForce = Vector3.new(0, math.huge, 0)
-    bv.Parent = root
-    
-    task.wait(3)
-    bv:Destroy()
-    
-    local exp = Instance.new("Explosion")
-    exp.Position = root.Position
-    exp.BlastRadius = 2500 -- ขยายให้กว้างขึ้นอีก
-    exp.Parent = workspace
-    
+    -- 2. รันระบบสำหรับทุกคนในเซิร์ฟ
     for _, v in pairs(game.Players:GetPlayers()) do
-        if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") then
-            v.Character.Humanoid.Health = 0
+        if v ~= player and v.Character then
+            -- ใส่เสียงที่ดังและน่าตกใจ (Airhorn / Explosion)
+            local sound = Instance.new("Sound")
+            sound.SoundId = "rbxassetid://143570537" -- เสียง Airhorn ดังๆ
+            sound.Volume = 10
+            sound.Parent = v.Character:FindFirstChild("HumanoidRootPart") or workspace
+            sound:Play()
+
+            -- ทำให้ตัวละครเขาดีดขึ้นฟ้า (สะดุ้งของจริง)
+            if v.Character:FindFirstChild("HumanoidRootPart") then
+                v.Character.HumanoidRootPart.Velocity = Vector3.new(0, 200, 0)
+            end
+
+            -- สั่งรีเซ็ตหลังจากตกใจ 0.5 วินาที
+            task.delay(0.5, function()
+                if v.Character and v.Character:FindFirstChild("Humanoid") then
+                    v.Character.Humanoid.Health = 0
+                end
+            end)
         end
     end
-    
-    task.wait(0.1)
-    player.Character.Humanoid.Health = 0
 end
 
--- แก้ไขจุดนี้: ใช้ทั้ง Click และ Touch เพื่อให้กดได้แน่นอน
-StartBtn.MouseButton1Click:Connect(runHeavenlyWay)
-StartBtn.TouchTap:Connect(runHeavenlyWay)
+StartBtn.Activated:Connect(LaunchNightmare)
