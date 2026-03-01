@@ -1,100 +1,112 @@
 --[[
-  METEOR STRIKE SCRIPT (ULTIMATE DESTRUCTION)
-  คำเตือน: สคริปต์นี้สร้างระเบิดที่รุนแรงมาก!
+  THE WORLD ENDER METEOR (ULTIMATE EDITION)
+  คุณสมบัติ: ใหญ่เท่าเกาะ, ระเบิดล้างแมพ, เจ้าของไม่ตาย (God Mode เฉพาะตอนระเบิด)
 --]]
 
 local player = game.Players.LocalPlayer
 local mouse = player:GetMouse()
-local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
 
--- === 1. สร้างปุ่มเรียกอุกกาบาต (GUI) ===
+-- === 1. สร้างปุ่มเรียกอุกกาบาตยักษ์ ===
 local screenGui = Instance.new("ScreenGui", player.PlayerGui)
 screenGui.ResetOnSpawn = false
 
 local btn = Instance.new("TextButton", screenGui)
-btn.Size = UDim2.new(0, 200, 0, 60)
-btn.Position = UDim2.new(0.5, -100, 0.1, 0)
-btn.Text = "☄️ CALL METEOR"
-btn.BackgroundColor3 = Color3.fromRGB(200, 50, 0) -- สีส้มเพลิง
+btn.Size = UDim2.new(0, 250, 0, 70)
+btn.Position = UDim2.new(0.5, -125, 0.1, 0)
+btn.Text = "☄️ มหาอุกกาบาตล้างโลก"
+btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- สีแดงเดือด
 btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 btn.Font = Enum.Font.GothamBlack
-btn.TextSize = 20
+btn.TextSize = 22
 Instance.new("UICorner", btn)
 
--- === 2. ฟังก์ชันการทำงานของอุกกาบาต ===
-local function SummonMeteor()
-    local targetPos = mouse.Hit.p -- จุดที่เมาส์ชี้ หรือจุดที่อุกกาบาตจะลง
-    local spawnPos = targetPos + Vector3.new(0, 300, 0) -- เกิดบนฟ้าสูง 300 เมตร
+-- === 2. ฟังก์ชันเรียกอุกกาบาต ===
+local function SummonGiganticMeteor()
+    local targetPos = mouse.Hit.p
+    local spawnPos = targetPos + Vector3.new(0, 600, 0) -- ตกจากฟ้าสูงมาก
 
-    -- สร้างลูกอุกกาบาต
+    -- สร้างลูกอุกกาบาต (ขนาดใหญ่เท่าเกาะ)
     local meteor = Instance.new("Part")
-    meteor.Name = "Meteor"
+    meteor.Name = "WorldEnder"
     meteor.Shape = Enum.PartType.Ball
-    meteor.Size = Vector3.new(20, 20, 20) -- ขนาดใหญ่ยักษ์
+    meteor.Size = Vector3.new(150, 150, 150) -- ขนาดมหึมา 150 หน่วย!
     meteor.Position = spawnPos
-    meteor.BrickColor = BrickColor.new("Cinder brown")
+    meteor.BrickColor = BrickColor.new("Black")
     meteor.Material = Enum.Material.Slate
     meteor.CanCollide = false
     meteor.Parent = game.Workspace
 
-    -- ใส่ไฟและควันให้อุกกาบาต
+    -- เอฟเฟกต์ไฟนรก (ใหญ่พิเศษ)
     local fire = Instance.new("Fire", meteor)
-    fire.Size = 50
-    fire.Heat = 50
+    fire.Size = 200
+    fire.Heat = 100
     
-    local attachment = Instance.new("Attachment", meteor)
-    local trail = Instance.new("ParticleEmitter", attachment)
-    trail.Color = ColorSequence.new(Color3.fromRGB(255, 100, 0))
-    trail.Size = NumberSequence.new(10, 0)
-    trail.Lifetime = NumberRange.new(0.5, 1)
-    trail.Rate = 500
-    trail.Speed = NumberRange.new(20)
+    -- เสียงตอนตกลงมา (สร้างความน่ากลัว)
+    local sound = Instance.new("Sound", meteor)
+    sound.SoundId = "rbxassetid://12222030" -- เสียงระเบิด/ลมพัดแรง
+    sound.Volume = 10
+    sound:Play()
 
-    -- ใส่ความเร็วให้อุกกาบาตพุ่งลงมา
+    -- แรงส่งให้อุกกาบาตถล่มพื้น
     local velocity = Instance.new("BodyVelocity", meteor)
     velocity.MaxForce = Vector3.new(1, 1, 1) * math.huge
-    velocity.Velocity = (targetPos - spawnPos).Unit * 250 -- ความเร็วพุ่งลง
+    velocity.Velocity = (targetPos - spawnPos).Unit * 300 -- พุ่งเร็วมาก
 
-    -- เช็คเมื่ออุกกาบาตถึงพื้น
+    -- เช็คเมื่อถึงพื้น
     meteor.Touched:Connect(function(hit)
-        if hit.Parent ~= player.Character then -- ไม่ระเบิดถ้าโดนตัวเอง (กันพลาด)
+        if hit.Parent ~= player.Character and not hit:IsDescendantOf(player.Character) then
             meteor:Destroy()
-            
-            -- สร้างการระเบิดยักษ์
+
+            -- --- ระบบป้องกันเจ้าของสคริปต์ (God Mode ชั่วคราว) ---
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                player.Character.Humanoid.Health = 100 -- ฮีลเลือดเต็ม
+                local ff = Instance.new("ForceField", player.Character) -- ใส่เกราะกันระเบิด
+                Debris:AddItem(ff, 5) -- เกราะหายไปหลังระเบิดจบ
+            end
+
+            -- --- ระเบิดมหาประลัย (ล้างแมพ) ---
             local explosion = Instance.new("Explosion")
             explosion.Position = meteor.Position
-            explosion.BlastRadius = 50 -- รัศมีระเบิด (กว้างมาก ตายเรียบ)
-            explosion.BlastPressure = 1000000 -- แรงอัดมหาศาล
+            explosion.BlastRadius = 1000 -- รัศมีกว้าง 1000 หน่วย (ทั่วทั้งเกาะ)
+            explosion.BlastPressure = math.huge -- แรงดันมหาศาล (กระจุย)
+            explosion.DestroyJointRadiusPercent = 1 -- ทำลายทุกข้อต่อ (ตายทันที)
             explosion.Parent = game.Workspace
-            
-            -- เอฟเฟกต์ไฟหลังระเบิด
+
+            -- เอฟเฟกต์แสงสีขาววาบตอนระเบิด
+            local flash = Instance.new("ColorCorrectionEffect", game.Lighting)
+            flash.Brightness = 1
+            game:GetService("TweenService"):Create(flash, TweenInfo.new(2), {Brightness = 0}):Play()
+            Debris:AddItem(flash, 2)
+
+            -- ควันดำปกคลุมแมพ
             local boomPart = Instance.new("Part", game.Workspace)
             boomPart.Anchored = true
             boomPart.CanCollide = false
             boomPart.Transparency = 1
             boomPart.Position = meteor.Position
             
-            local boomSmoke = Instance.new("ParticleEmitter", boomPart)
-            boomSmoke.Color = ColorSequence.new(Color3.fromRGB(0, 0, 0))
-            boomSmoke.Size = NumberSequence.new(20, 50)
-            boomSmoke.Rate = 1000
-            boomSmoke.Lifetime = NumberRange.new(2, 5)
-            boomSmoke.EmitCount = 100
+            local smoke = Instance.new("ParticleEmitter", boomPart)
+            smoke.Color = ColorSequence.new(Color3.fromRGB(0, 0, 0))
+            smoke.Size = NumberSequence.new(100, 200)
+            smoke.Rate = 2000
+            smoke.Lifetime = NumberRange.new(5, 10)
+            smoke.EmitCount = 200
             
-            game:GetService("Debris"):AddItem(boomPart, 5)
+            Debris:AddItem(boomPart, 10)
         end
     end)
 end
 
--- === 3. เมื่อกดปุ่มให้เรียกใช้งาน ===
+-- === 3. ระบบกดปุ่ม ===
 btn.MouseButton1Click:Connect(function()
-    btn.Text = "⏳ RELOADING..."
+    btn.Text = "🚨 ระบบกำลังรีโหลด..."
     btn.Active = false
-    SummonMeteor()
+    SummonGiganticMeteor()
     
-    task.wait(3) -- รอ 3 วินาทีก่อนกดใหม่ได้
-    btn.Text = "☄️ CALL METEOR"
+    task.wait(5) -- คูลดาวน์ 5 วินาที
+    btn.Text = "☄️ มหาอุกกาบาตล้างโลก"
     btn.Active = true
 end)
 
-print("Meteor Script Loaded! Click the button to destroy!")
+print("The World Ender Script Loaded! รันเสร็จแล้วกดปุ่มเพื่อล้างโลก!")
