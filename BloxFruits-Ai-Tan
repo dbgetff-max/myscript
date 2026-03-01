@@ -1,106 +1,115 @@
--- [[ Blox Fruits: Ai-Tan Ultimate Edition (Full Item & Boss Hunter) ]] --
+-- [[ Blox Fruits: Ai-Tan Universe (Full Farm + Auto Buy Haki) ]] --
 _G.Config = {
     ["Farm"] = true,
     ["Stats"] = true,
-    ["AutoPower"] = true,  -- ระบบทำพาวเวอร์ (สลับหมัด 400/600)
-    ["BossHunter"] = true, -- ล่าบอส/แอดมิน/หนวดดำ/เกาะบรู๊ค ทันทีที่เกิด
-    ["SwordHunter"] = true, -- ล่าดาบ Saber, TTK, CDK, Buddy, Anchor
-    ["Speed"] = 200,       -- ความเร็วปลอดภัย
-    ["Height"] = 78        -- บินสูงตามสั่ง (75-80)
+    ["AutoHaki"] = true, -- เปิดระบบซื้อฮาคิอัตโนมัติ
+    ["Height"] = 78,
+    ["Distance"] = 7,
+    ["Speed"] = 230
 }
 
 local player = game.Players.LocalPlayer
 local remotes = game:GetService("ReplicatedStorage").Remotes.CommF_
 
--- [[ ระบบบินสูง 78 เมตร และล็อกความสูง ]]
-local function SmoothMove(targetPos)
+-- [[ ระบบซื้อฮาคิ (Buso / Skyjump / FlashStep / Observation) ]]
+local function AutoBuyHaki()
+    if not _G.Config.AutoHaki then return end
+    local lv = player.Data.Level.Value
+    local cash = player.Data.Beli.Value
+    
+    -- ซื้อฮาคิเกราะ/กระโดด/โซ (ที่เกาะหิมะ โลก 1)
+    if game.PlaceId == 2753915549 then
+        if cash >= 25000 then remotes:InvokeServer("BuyHaki", "Buso") end
+        if cash >= 10000 then remotes:InvokeServer("BuyHaki", "Skyjump") end
+        if cash >= 100000 then remotes:InvokeServer("BuyHaki", "FlashStep") end
+        
+        -- ซื้อฮาคิสังเกต (เวล 300 + เงิน 7.5 แสน ที่เกาะท้องฟ้า)
+        if lv >= 300 and cash >= 750000 then
+            remotes:InvokeServer("WaitUntilReady", "BuyObsHaki")
+        end
+    end
+end
+
+-- [[ ระบบเปิดใช้งานฮาคิอัตโนมัติขณะฟาร์ม ]]
+local function EnableHaki()
+    if not player.Character:FindFirstChild("HasBuso") then
+        remotes:InvokeServer("Buso")
+    end
+end
+
+-- [[ ระบบเช็คเกาะและเควส (World 1-2-3) ]]
+local function GetCurrentWorldData()
+    local lv = player.Data.Level.Value
+    local world = game.PlaceId
+    
+    if world == 2753915549 then -- Sea 1
+        if lv < 60 then return {NPC = CFrame.new(-1598, 35, 153), Name = "JungleQuest", Item = 1}
+        elseif lv < 120 then return {NPC = CFrame.new(-1150, 20, -3000), Name = "SnowQuest", Item = 1}
+        elseif lv < 300 then return {NPC = CFrame.new(890, 15, 4380), Name = "DesertQuest", Item = 1}
+        elseif lv < 450 then return {NPC = CFrame.new(5120, 15, 600), Name = "PrisonQuest", Item = 1}
+        else return {NPC = CFrame.new(-5200, 15, 8500), Name = "MagmaQuest", Item = 1} end
+    elseif world == 4442272183 then -- Sea 2
+        return {NPC = CFrame.new(-1580, 7, 335), Name = "Area1Quest", Item = 1}
+    else -- Sea 3
+        return {NPC = CFrame.new(-12500, 15, -10500), Name = "TurtleQuest", Item = 1}
+    end
+end
+
+-- [[ ระบบโจมตี (CA/PA) ]]
+local function AttackLogic()
     local char = player.Character
-    if char and char:FindFirstChild("HumanoidRootPart") and _G.Config.Farm then
-        -- ล็อกความสูง (Y) ไว้ที่ 78 ตลอดการเดินทาง
-        local highPos = CFrame.new(targetPos.p.X, targetPos.p.Y + _G.Config.Height, targetPos.p.Z)
-        local dist = (char.HumanoidRootPart.Position - highPos.p).Magnitude
-        if dist > 5 then
-            game:GetService("TweenService"):Create(char.HumanoidRootPart, TweenInfo.new(dist/_G.Config.Speed, Enum.EasingStyle.Linear), {CFrame = highPos}):Play()
-        end
-    end
-end
-
--- [[ ระบบดึงมอนมาตี (Bring Mob) ]]
-local function AttackMonster(mob)
-    if mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
-        mob.HumanoidRootPart.CanCollide = false
-        -- ดึงมอนมาไว้ข้างหน้าตัวเราในระยะที่ตีโดนแน่นอน
-        mob.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
-        game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
-    end
-end
-
--- [[ ระบบเช็คและสลับหมัด (400/600) ]]
-local function AutoSwapMelee()
-    if not _G.Config.AutoPower then return end
-    local currentTool = player.Character:FindFirstChildOfClass("Tool")
-    if currentTool and currentTool.ToolTip == "Melee" then
-        local mastery = currentTool.Level.Value
-        -- ถ้าหมัด V1 ครบ 400 หรือ V2 ครบ 600 ให้หาหมัดใหม่ในช่องเก็บของ
-        if (not string.find(currentTool.Name, "V2") and mastery >= 400) or (string.find(currentTool.Name, "V2") and mastery >= 600) then
-            for _, tool in pairs(player.Backpack:GetChildren()) do
-                if tool.ToolTip == "Melee" and tool.Name ~= currentTool.Name then
-                    player.Character.Humanoid:EquipTool(tool)
-                    break
-                end
-            end
-        end
-    end
-end
-
--- [[ ระบบล่าบอส & ของแรร์ (Special Targets) ]]
-local function GetSpecialTarget()
-    local names = {"rip_indra", "Darkbeard", "Soul Reaper", "Saber Expert", "Cake Queen", "Order"}
-    for _, enemy in pairs(game.Workspace.Enemies:GetChildren()) do
-        for _, name in pairs(names) do
-            if enemy.Name:find(name) and enemy.Humanoid.Health > 0 then
-                return enemy
-            end
-        end
-    end
-    return nil
-end
-
--- [[ Loop การทำงานหลัก ]]
-task.spawn(function()
-    while true do
-        task.wait(0.1)
-        if _G.Config.Farm then
-            pcall(function()
-                local lv = player.Data.Level.Value
-                local char = player.Character
-                local specialBoss = GetSpecialTarget()
-
-                -- 1. ถ้าบอสพิเศษ/แอดมินเกิด -> พุ่งไปฆ่าทันที!
-                if specialBoss and _G.Config.BossHunter then
-                    SmoothMove(specialBoss.HumanoidRootPart.CFrame)
-                    AttackMonster(specialBoss)
-                else
-                    -- 2. ถ้าไม่มีบอส -> ฟาร์มเลเวล/หมัดตามปกติ
-                    AutoSwapMelee()
-                    
-                    -- พิกัดจุดฟาร์มตามโลก
-                    local farmPos
-                    if lv < 700 then farmPos = CFrame.new(-1500, 40, 400) -- โลก 1
-                    elseif lv < 1500 then farmPos = CFrame.new(-380, 70, 250) -- โลก 2
-                    else farmPos = CFrame.new(-5000, 300, -5000) end -- โลก 3
-                    
-                    SmoothMove(farmPos)
-                    
-                    -- ตีมอนสเตอร์ที่อยู่ใกล้ตัว
-                    for _, mob in pairs(game.Workspace.Enemies:GetChildren()) do
-                        if (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude < 300 then
-                            AttackMonster(mob)
-                        end
+    EnableHaki() -- เปิดฮาคิเกราะก่อนตี
+    for _, mob in pairs(game.Workspace.Enemies:GetChildren()) do
+        if mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
+            if (mob.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude < 300 then
+                mob.HumanoidRootPart.CanCollide = false
+                mob.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0, -_G.Config.Distance, 0)
+                
+                local tool = char:FindFirstChildOfClass("Tool")
+                if not tool or tool.ToolTip ~= "Melee" then
+                    for _, t in pairs(player.Backpack:GetChildren()) do
+                        if t.ToolTip == "Melee" then char.Humanoid:EquipTool(t) break end
                     end
                 end
+                if tool then
+                    spawn(function()
+                        game:GetService("ReplicatedStorage").Remotes.Validator:FireServer(math.huge)
+                        remotes:InvokeServer("Attack", tool)
+                    end)
+                    game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
+                end
+            end
+        end
+    end
+end
 
-                -- 3. อัป Stats (บนลงล่าง)
+task.spawn(function()
+    while true do
+        task.wait(0.01)
+        if _G.Config.Farm then
+            pcall(function()
+                local char = player.Character
+                local data = GetCurrentWorldData()
+                
+                -- ระบบซื้อฮาคิอัตโนมัติ
+                AutoBuyHaki()
+                
+                -- รับเควส
+                if _G.Config.AutoQuest and player.PlayerGui.Main.Quest.Visible == false then
+                    char.HumanoidRootPart.CFrame = data.NPC
+                    task.wait(0.5)
+                    remotes:InvokeServer("StartQuest", data.Name, data.Item)
+                end
+                
+                -- บินเดินทาง/ฟาร์ม
+                local dist = (char.HumanoidRootPart.Position - data.NPC.p).Magnitude
+                if dist > 65 then
+                    char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame:Lerp(CFrame.new(data.NPC.p.X, _G.Config.Height, data.NPC.p.Z), 0.1)
+                else
+                    AttackLogic()
+                end
+
+                -- อัป Stats
                 if _G.Config.Stats then
                     remotes:InvokeServer("AddPoint", "Melee", 1)
                     remotes:InvokeServer("AddPoint", "Defense", 1)
@@ -110,16 +119,14 @@ task.spawn(function()
     end
 end)
 
--- [[ ปุ่มเปิด-ปิด UI ]]
+-- UI
 local sg = Instance.new("ScreenGui", game.CoreGui)
 local bt = Instance.new("TextButton", sg)
-bt.Size, bt.Position = UDim2.new(0,160,0,50), UDim2.new(1,-170,0.5,0)
-bt.Text = "Ai-Tan (Full): ON"
-bt.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
+bt.Size, bt.Position = UDim2.new(0,220,0,50), UDim2.new(1,-230,0.5,0)
+bt.Text = "Ai-Tan + Haki: ON"
+bt.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- สีดำฮาคิ
+bt.TextColor3 = Color3.new(1,1,1)
 bt.MouseButton1Click:Connect(function()
     _G.Config.Farm = not _G.Config.Farm
-    bt.Text = _G.Config.Farm and "Ai-Tan (Full): ON" or "Ai-Tan (Full): OFF"
-    bt.BackgroundColor3 = _G.Config.Farm and Color3.fromRGB(0, 255, 120) or Color3.fromRGB(255, 60, 60)
+    bt.Text = _G.Config.Farm and "Ai-Tan + Haki: ON" or "Ai-Tan + Haki: OFF"
 end)
-
-print("Ai-Tan Script Loaded! All Systems Active.")
