@@ -1,0 +1,76 @@
+-- [[ PRISON LIFE - SILENT TARGET & AUTO KILL ]] --
+-- รันแล้วทำงานทันที ไม่มีเมนู (No UI / No Logo)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+-- 1. ระบบมองทะลุ (ESP) - แสดงชื่อและจุดบนหัวทุกคน
+local function CreateESP(Player)
+    local function SetupESP(Character)
+        local Head = Character:WaitForChild("Head", 10)
+        if Head then
+            -- สร้าง BillboardGui ไว้บนหัว
+            local bgui = Instance.new("BillboardGui", Head)
+            bgui.Name = "VisualESP"
+            bgui.AlwaysOnTop = true
+            bgui.Size = UDim2.new(0, 200, 0, 50)
+            bgui.StudsOffset = Vector3.new(0, 2, 0)
+
+            local nametag = Instance.new("TextLabel", bgui)
+            nametag.BackgroundTransparency = 1
+            nametag.Size = UDim2.new(1, 0, 1, 0)
+            nametag.TextSize = 14
+            nametag.Font = Enum.Font.SourceSansBold
+            
+            -- อัปเดตชื่อและสีตามทีม
+            RunService.Heartbeat:Connect(function()
+                if Player and Player.Parent and Character and Character:FindFirstChild("Head") then
+                    nametag.Text = Player.Name .. " [" .. (Player.Team and Player.Team.Name or "No Team") .. "]"
+                    if Player.Team and (Player.Team.Name == "Police" or Player.Team.Name == "Guards") then
+                        nametag.TextColor3 = Color3.fromRGB(0, 150, 255) -- ตำรวจสีฟ้า
+                    else
+                        nametag.TextColor3 = Color3.fromRGB(255, 255, 255) -- คนอื่นสีขาว
+                    end
+                else
+                    bgui:Destroy()
+                end
+            end)
+        end
+    end
+    if Player.Character then SetupESP(Player.Character) end
+    Player.CharacterAdded:Connect(SetupESP)
+end
+
+-- 2. ระบบยิงอัตโนมัติ (Auto Kill Police)
+RunService.RenderStepped:Connect(function()
+    -- ตรวจสอบว่าเราเป็นโจร (Criminals) หรือนักโทษ (Prisoners)
+    if LocalPlayer.Team and (LocalPlayer.Team.Name == "Criminals" or LocalPlayer.Team.Name == "Prisoners") then
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= LocalPlayer and v.Team and (v.Team.Name == "Police" or v.Team.Name == "Guards") then
+                if v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (LocalPlayer.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude
+                    if dist < 40 then -- ระยะยิง 40 เมตร
+                        -- คำสั่งยิงสำหรับปืนใน Prison Life
+                        local gun = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                        if gun and gun:FindFirstChild("RemoteEvent") then
+                            gun.RemoteEvent:FireServer(v.Character.HumanoidRootPart.Position)
+                        end
+                        -- ดึงเลือด (Option เสริมถ้าเกมไม่กัน)
+                        if v.Character:FindFirstChild("Humanoid") then
+                            v.Character.Humanoid.Health = 0
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- เริ่มทำงานให้กับทุกคน
+for _, p in pairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then CreateESP(p) end
+end
+Players.PlayerAdded:Connect(CreateESP)
+
+print("สคริปต์ทำงานแล้ว (ไม่มีเมนู)")
