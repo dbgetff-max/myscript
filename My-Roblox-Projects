@@ -1,78 +1,60 @@
--- [[ Block Spin: ระบบ GPS ทะลุกำแพง + ล็อคเป้า + UI ]] --
+-- [[ Block Spin - Final Master Script ]] --
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 local RunService = game:GetService("RunService")
 
--- 1. สร้างหน้าต่างเมนู (UI) ให้เหมือนใน TikTok
+-- 1. ระบบ UI แจ้งเตือน (เพื่อให้รู้ว่าสคริปต์ทำงานแล้ว)
 local sg = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-sg.Name = "UltraFinalUI"
+local txt = Instance.new("TextLabel", sg)
+txt.Size = UDim2.new(0, 200, 0, 50)
+txt.Position = UDim2.new(0.4, 0, 0.05, 0)
+txt.Text = "SYSTEM ACTIVE: GPS & AIM"
+txt.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+txt.TextColor3 = Color3.new(0, 0, 0)
 
-local frame = Instance.new("Frame", sg)
-frame.Size = UDim2.new(0, 200, 0, 100)
-frame.Position = UDim2.new(0.05, 0, 0.05, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.Active = true
-frame.Draggable = true -- ลากวางได้
-
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "BLOCK SPIN V7 FINAL"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.BackgroundTransparency = 1
-
-local status = Instance.new("TextLabel", frame)
-status.Size = UDim2.new(1, 0, 0, 50)
-status.Position = UDim2.new(0, 0, 0.4, 0)
-status.Text = "ระบบ GPS: เปิดใช้งานแล้ว"
-status.TextColor3 = Color3.fromRGB(0, 255, 100)
-status.BackgroundTransparency = 1
-
--- 2. ระบบ GPS (Highlight & Name) เห็นทะลุกำแพง
-local function applyESP(v)
-    if v.Character then
-        -- สร้างแสงรอบตัว (Highlight)
-        local highlight = Instance.new("Highlight", v.Character)
-        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-        highlight.OutlineColor = Color3.new(1, 1, 1)
-        highlight.FillTransparency = 0.5
-        
-        -- สร้างป้ายชื่อบอกตำแหน่ง (Name Tag)
-        local billboard = Instance.new("BillboardGui", v.Character:WaitForChild("Head"))
-        billboard.Size = UDim2.new(0, 100, 0, 50)
-        billboard.AlwaysOnTop = true -- ทำให้เห็นทะลุกำแพง
-        billboard.ExtentsOffset = Vector3.new(0, 3, 0)
-        
-        local label = Instance.new("TextLabel", billboard)
-        label.Size = UDim2.new(1, 1, 1, 1)
-        label.Text = v.Name .. " [" .. math.floor(v.Character.Humanoid.Health) .. "]"
-        label.TextColor3 = Color3.new(1, 1, 1)
-        label.BackgroundTransparency = 1
+-- 2. ระบบ GPS ทะลุกำแพง (ESP Highlight)
+local function createESP(plr)
+    local function addHighlights(char)
+        if not char:FindFirstChild("ESPHighlight") then
+            local highlight = Instance.new("Highlight", char)
+            highlight.Name = "ESPHighlight"
+            highlight.FillColor = Color3.fromRGB(255, 0, 0) -- ตัวสีแดง
+            highlight.OutlineColor = Color3.new(1, 1, 1) -- ขอบขาว
+            highlight.FillTransparency = 0.4
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- เห็นทะลุกำแพงแน่นอน
+        end
     end
+    if plr.Character then addHighlights(plr.Character) end
+    plr.CharacterAdded:Connect(addHighlights)
 end
 
--- รัน GPS ให้ทุกคน
+-- รันระบบ GPS ให้ทุกคนในเซิร์ฟเวอร์
 for _, p in pairs(Players:GetPlayers()) do
-    if p ~= LocalPlayer then applyESP(p) end
+    if p ~= LocalPlayer then createESP(p) end
 end
-Players.PlayerAdded:Connect(applyESP)
+Players.PlayerAdded:Connect(createESP)
 
--- 3. ระบบล็อคเป้า (Silent Aim)
+-- 3. ระบบล็อคเป้าอัตโนมัติ (Auto Aim)
 RunService.RenderStepped:Connect(function()
-    local closest = nil
-    local dist = 200 -- ระยะล็อค
+    local target = nil
+    local shortestDist = 250 -- ระยะตรวจจับ
     
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") and p.Character.Humanoid.Health > 0 then
-            local pos = workspace.CurrentCamera:WorldToViewportPoint(p.Character.Head.Position)
-            local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(workspace.CurrentCamera.ViewportSize.X/2, workspace.CurrentCamera.ViewportSize.Y/2)).Magnitude
-            if mag < dist then
-                closest = p
-                dist = mag
+            local pos, onScreen = Camera:WorldToViewportPoint(p.Character.Head.Position)
+            if onScreen then
+                local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if mag < shortestDist then
+                    target = p
+                    shortestDist = mag
+                end
             end
         end
     end
     
-    if closest then
-        workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, closest.Character.Head.Position)
+    if target then
+        -- ล็อคเป้าไปที่หัวทันที
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
     end
 end)
