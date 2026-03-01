@@ -1,141 +1,125 @@
--- [[ Eleven ThaiBaan Hub: Pro UI Edition ]] --
+-- [[ Eleven Heaven: Pain & Mahoraga Era V18 ]] --
 local player = game.Players.LocalPlayer
 local core = game:GetService("CoreGui")
 
--- ลบ UI เก่าออกก่อน (ถ้ามี)
-if core:FindFirstChild("ElevenHub") then core.ElevenHub:Destroy() end
+if core:FindFirstChild("ElevenHeavenUI") then core.ElevenHeavenUI:Destroy() end
 
 local sg = Instance.new("ScreenGui", core)
-sg.Name = "ElevenHub"
+sg.Name = "ElevenHeavenUI"
 
--- [[ ตัวเมนูหลัก ]] --
+-- [[ ปุ่มเปิด/ปิด (🔮) ]] --
+local ToggleBtn = Instance.new("TextButton", sg)
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+ToggleBtn.Position = UDim2.new(0, 10, 0.4, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ToggleBtn.Text = "🔮"
+ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+
+-- [[ หน้าต่างหลัก Style Box Food ]] --
 local Main = Instance.new("Frame", sg)
-Main.Size = UDim2.new(0, 220, 0, 280)
-Main.Position = UDim2.new(0.5, -110, 0.3, 0)
+Main.Size = UDim2.new(0, 350, 0, 280)
+Main.Position = UDim2.new(0.5, -175, 0.5, -140)
 Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Main.BorderSizePixel = 0
+Main.Visible = false 
 Main.Active = true
 Main.Draggable = true
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", Main)
 
--- แถบหัวเมนู (ไว้พับเก็บ)
-local TopBar = Instance.new("Frame", Main)
-TopBar.Size = UDim2.new(1, 0, 0, 35)
-TopBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 10)
+local Sidebar = Instance.new("Frame", Main)
+Sidebar.Size = UDim2.new(0, 100, 1, 0)
+Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Instance.new("UICorner", Sidebar)
 
-local Title = Instance.new("TextLabel", TopBar)
-Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "ELEVEN HUB V4"
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.BackgroundTransparency = 1
+local Title = Instance.new("TextLabel", Sidebar)
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Text = "PAIN\nHEAVEN"
+Title.TextColor3 = Color3.fromRGB(255, 100, 0)
 Title.Font = Enum.Font.GothamBold
+Title.BackgroundTransparency = 1
 
--- ปุ่มพับเมนู (Minimize)
-local MinBtn = Instance.new("TextButton", TopBar)
-MinBtn.Size = UDim2.new(0, 25, 0, 25)
-MinBtn.Position = UDim2.new(1, -30, 0, 5)
-MinBtn.Text = "-"
-MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-MinBtn.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", MinBtn)
-
--- [[ ส่วนเลื่อนปุ่ม (Scrolling Frame) ]] --
 local Scroll = Instance.new("ScrollingFrame", Main)
-Scroll.Size = UDim2.new(1, -10, 1, -45)
-Scroll.Position = UDim2.new(0, 5, 0, 40)
+Scroll.Size = UDim2.new(1, -110, 1, -10)
+Scroll.Position = UDim2.new(0, 105, 0, 5)
 Scroll.BackgroundTransparency = 1
-Scroll.CanvasSize = UDim2.new(0, 0, 1.5, 0) -- เลื่อนลงได้
-Scroll.ScrollBarThickness = 4
+Scroll.CanvasSize = UDim2.new(0, 0, 3, 0)
+Scroll.ScrollBarThickness = 2
+Instance.new("UIListLayout", Scroll).Padding = UDim.new(0, 7)
 
-local Layout = Instance.new("UIListLayout", Scroll)
-Layout.Padding = UDim.new(0, 8)
-Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
--- [[ ฟังก์ชันสร้างปุ่มแบบมือโปร ]] --
 local function CreateBtn(name, color, func)
     local btn = Instance.new("TextButton", Scroll)
-    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Size = UDim2.new(0.95, 0, 0, 40)
     btn.BackgroundColor3 = color
     btn.Text = name
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
-    btn.BorderSizePixel = 0
     Instance.new("UICorner", btn)
     btn.Activated:Connect(func)
 end
 
--- --- เพิ่มปุ่มต่าง ๆ ลงในเมนู --- --
+ToggleBtn.Activated:Connect(function() Main.Visible = not Main.Visible end)
 
-CreateBtn("ดึงเด็กแว้นมานี่! 🌀", Color3.fromRGB(0, 150, 100), function()
+-- [[ --- สกิลเพน 6 วิถี & ไสยเวท --- ]] --
+
+-- 1. คลายเทพพิชิตฟ้า (Almighty Push) - ดีดทุกคนออกไปรอบตัว
+CreateBtn("คลายเทพพิชิตฟ้า! 🌀", Color3.fromRGB(255, 100, 0), function()
     local hrp = player.Character.HumanoidRootPart
     for _, v in pairs(game.Players:GetPlayers()) do
         if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (v.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+            if dist < 50 then
+                local force = (v.Character.HumanoidRootPart.Position - hrp.Position).Unit * 100
+                v.Character.HumanoidRootPart.Velocity = force + Vector3.new(0, 50, 0)
+            end
+        end
+    end
+end)
+
+-- 2. หมื่นลักษณ์เหนี่ยวรั้ง (Universal Pull) - ดึงทุกคนมาหา
+CreateBtn("หมื่นลักษณ์เหนี่ยวรั้ง! 🧲", Color3.fromRGB(100, 100, 100), function()
+    local hrp = player.Character.HumanoidRootPart
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= player and v.Character then
             v.Character.HumanoidRootPart.CFrame = hrp.CFrame * CFrame.new(0, 0, -5)
         end
     end
 end)
 
-CreateBtn("ส่งไปสวรรค์ ☁️", Color3.fromRGB(0, 170, 255), function()
-    for _, v in pairs(game.Players:GetPlayers()) do
-        if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = v.Character.HumanoidRootPart
-            local bv = Instance.new("BodyVelocity", hrp)
-            bv.Velocity = Vector3.new(0, 1000, 0)
-            bv.MaxForce = Vector3.new(0, math.huge, 0)
-            task.wait(0.5)
-            bv:Destroy()
-            local bf = Instance.new("BodyForce", hrp)
-            bf.Force = Vector3.new(0, 5000, 0)
+-- 3. กางอาณาเขต (ไซส์ถล่มเมือง) - ใหญ่กว่าเดิม 10 เท่า!
+CreateBtn("กางอาณาเขต (ระดับเมือง) 🌑", Color3.fromRGB(0, 0, 0), function()
+    local d = Instance.new("Part", workspace)
+    d.Shape = "Ball"; d.Size = Vector3.new(1000, 1000, 1000) -- ใหญ่เท่าเมือง
+    d.Color = Color3.new(0, 0, 0); d.Material = "Neon"; d.Transparency = 0.6; d.Anchored = true; d.Position = player.Character.HumanoidRootPart.Position
+    d.CanCollide = false
+    task.wait(10); d:Destroy()
+end)
+
+-- 4. มุราซากิ (Purple)
+CreateBtn("มุราซากิ! 🟣", Color3.fromRGB(130, 0, 255), function()
+    local hrp = player.Character.HumanoidRootPart
+    local ball = Instance.new("Part", workspace)
+    ball.Shape = "Ball"; ball.Size = Vector3.new(20, 20, 20); ball.Color = Color3.fromRGB(150,0,255); ball.Material = "Neon"; ball.Anchored = true; ball.CanCollide = false
+    ball.CFrame = hrp.CFrame
+    spawn(function()
+        for i = 1, 100 do
+            ball.CFrame = ball.CFrame * CFrame.new(0, 0, -5)
+            for _, v in pairs(game.Players:GetPlayers()) do
+                if v ~= player and v.Character and (v.Character.HumanoidRootPart.Position - ball.Position).Magnitude < 20 then
+                    v.Character.Humanoid.Health = 0
+                end
+            end
+            task.wait(0.02)
         end
-    end
+        ball:Destroy()
+    end)
 end)
 
-CreateBtn("นรกสั่งตาย! 💀", Color3.fromRGB(200, 0, 0), function()
-    for _, v in pairs(game.Players:GetPlayers()) do
-        if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") then
-            v.Character.Humanoid.Health = 0
-        end
-    end
-end)
-
-CreateBtn("ตัวใหญ่ยักษ์! 👹", Color3.fromRGB(150, 100, 0), function()
-    local hum = player.Character.Humanoid
-    for _, s in pairs({"BodyHeightScale","BodyWidthScale","BodyDepthScale","HeadScale"}) do
-        if hum:FindFirstChild(s) then hum[s].Value = 4 end
-    end
-end)
-
-CreateBtn("สุ่มวาร์ปคนลงน้ำ 🌊", Color3.fromRGB(0, 80, 150), function()
-    for _, v in pairs(game.Players:GetPlayers()) do
-        if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-            v.Character.HumanoidRootPart.CFrame = CFrame.new(0, -50, 0) -- วาร์ปไปใต้แมพที่มีน้ำ
-        end
-    end
-end)
-
-CreateBtn("ลบรถทั้งเซิร์ฟ 🚜", Color3.fromRGB(80, 80, 80), function()
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("VehicleSeat") or v.Name:lower():find("car") then
-            v.Parent:Destroy()
-        end
-    end
-end)
-
--- [[ ระบบพับเมนู ]] --
-local minimized = false
-MinBtn.Activated:Connect(function()
-    minimized = not minimized
-    if minimized then
-        Scroll.Visible = false
-        Main:TweenSize(UDim2.new(0, 220, 0, 35), "Out", "Quart", 0.3, true)
-        MinBtn.Text = "+"
-    else
-        Main:TweenSize(UDim2.new(0, 220, 0, 280), "Out", "Quart", 0.3, true)
-        task.wait(0.3)
-        Scroll.Visible = true
-        MinBtn.Text = "-"
-    end
+-- 5. อัญเชิญมโหราคะ (วงแหวน)
+CreateBtn("อัญเชิญมโหราคะ 🎡", Color3.fromRGB(180, 180, 180), function()
+    local hrp = player.Character.HumanoidRootPart
+    local wheel = Instance.new("Part", hrp)
+    wheel.Size = Vector3.new(5, 0.2, 5); wheel.Color = Color3.new(1, 1, 0.5); wheel.Material = "Neon"; wheel.CanCollide = false
+    local weld = Instance.new("Weld", wheel)
+    weld.Part0 = wheel; weld.Part1 = hrp; weld.C0 = CFrame.new(0, -4, 0) * CFrame.Angles(math.rad(90), 0, 0)
+    spawn(function() while wheel.Parent do wheel.CFrame = wheel.CFrame * CFrame.Angles(0, 0, math.rad(12)); task.wait(0.05) end end)
 end)
