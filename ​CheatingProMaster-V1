@@ -1,91 +1,99 @@
--- [[ CHEATING PRO MASTER V1 - TIKTOK SILENT AIM EDITION ]] --
+-- [[ CHEATING PRO MASTER V8 - THE REAL RECOVERY ]] --
+-- แก้ไข: ระบบยิงแบบ V1 + เห็นโจรสีแดง + เห็นนักโทษสีส้ม + เป้าเขียว
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local RunService = game:GetService("RunService")
 
--- [[ SETTINGS ]] --
-_G.SilentAimEnabled = true
-_G.FOV_Radius = 130
-_G.TeamCheck = true
+-- ตั้งค่าความโหด (อ้างอิงจากคลิป V1 ที่คุณเล่นแล้วเทพ)
+local SHOOT_RANGE = 250 
+local FOV_SIZE = 130 
 
--- 1. วงกลม Silent Aim สีขาว (ถอดแบบจากคลิป)
+-- 1. วงกลมสีเขียว (กลับมาใช้แบบเดิมที่มองเห็นชัด)
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Visible = true
-FOVCircle.Color = Color3.fromRGB(255, 255, 255) -- สีขาว
+FOVCircle.Color = Color3.fromRGB(0, 255, 0)
 FOVCircle.Thickness = 1
-FOVCircle.NumSides = 100
-FOVCircle.Radius = _G.FOV_Radius
-FOVCircle.Transparency = 0.5
+FOVCircle.NumSides = 64
+FOVCircle.Radius = FOV_SIZE
+FOVCircle.Transparency = 0.7
 FOVCircle.Filled = false
 
--- 2. ESP แยกสีทีม (โจร=แดง, นักโทษ=ส้ม, ตำรวจ=ฟ้า)
+-- 2. ระบบ ESP แยกสี (แก้บัคมองไม่เห็นโจร)
 local function CreateESP(Player)
-    Player.CharacterAdded:Connect(function(Character)
+    local function AddTag(Character)
         local Head = Character:WaitForChild("Head", 10)
+        if Head:FindFirstChild("V8_ESP") then Head.V8_ESP:Destroy() end
+
         local bgui = Instance.new("BillboardGui", Head)
-        bgui.Name = "MasterESP"
+        bgui.Name = "V8_ESP"
         bgui.AlwaysOnTop = true
         bgui.Size = UDim2.new(0, 200, 0, 50)
-        bgui.StudsOffset = Vector3.new(0, 2.5, 0)
-        local nametag = Instance.new("TextLabel", bgui)
-        nametag.BackgroundTransparency = 1
-        nametag.Size = UDim2.new(1, 0, 1, 0)
-        nametag.TextSize = 16
-        nametag.Font = Enum.Font.SourceSansBold
+        bgui.StudsOffset = Vector3.new(0, 3, 0)
+
+        local label = Instance.new("TextLabel", bgui)
+        label.BackgroundTransparency = 1
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.TextSize = 18
+        label.Font = Enum.Font.SourceSansBold
+        label.TextStrokeTransparency = 0
         
         RunService.Heartbeat:Connect(function()
             if Player and Player.Parent and Character and Character:FindFirstChild("Head") then
-                local team = Player.Team and Player.Team.Name or "Neutral"
-                nametag.Text = Player.Name .. " [" .. team .. "]"
-                if team == "Police" or team == "Guards" then nametag.TextColor3 = Color3.fromRGB(0, 162, 255)
-                elseif team == "Criminals" then nametag.TextColor3 = Color3.fromRGB(255, 0, 0)
-                elseif team == "Inmates" or team == "Prisoners" then nametag.TextColor3 = Color3.fromRGB(255, 165, 0)
-                else nametag.TextColor3 = Color3.fromRGB(255, 255, 255) end
-            else bgui:Destroy() end
+                local team = Player.Team and Player.Team.Name or "None"
+                label.Text = Player.Name .. " [" .. team .. "]"
+                
+                -- [[ เช็คชื่อทีมทุกแบบที่เป็นไปได้ ]] --
+                if team == "Police" or team == "Guards" then 
+                    label.TextColor3 = Color3.fromRGB(0, 162, 255) -- ฟ้า
+                elseif team == "Criminals" or team == "Cowboys" then 
+                    label.TextColor3 = Color3.fromRGB(255, 0, 0)   -- แดง (โจรต้องเห็น!)
+                elseif team == "Inmates" or team == "Prisoners" then 
+                    label.TextColor3 = Color3.fromRGB(255, 165, 0) -- ส้ม (นักโทษ)
+                else 
+                    label.TextColor3 = Color3.fromRGB(255, 255, 255) -- ขาว
+                end
+            else 
+                bgui:Destroy() 
+            end
         end)
-    end)
+    end
+    if Player.Character then AddTag(Player.Character) end
+    Player.CharacterAdded:Connect(AddTag)
 end
 
--- 3. ระบบ Silent Aim (ยิงเข้าเป้าที่ใกล้ที่สุดในวง)
-local function GetClosestToMouse()
-    local target = nil
-    local shortestDist = _G.FOV_Radius
-
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
-            -- เช็คทีม
-            if not _G.TeamCheck or v.Team ~= LocalPlayer.Team then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
-                if onScreen then
-                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                    if dist < shortestDist then
-                        target = v.Character.HumanoidRootPart
-                        shortestDist = dist
+-- 3. ระบบยิงอัตโนมัติ (ใช้ระบบ V1 ที่ดีที่สุด)
+RunService.RenderStepped:Connect(function()
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local char = LocalPlayer.Character
+    local tool = char and char:FindFirstChildOfClass("Tool")
+    
+    if tool and tool:FindFirstChild("RemoteEvent") then
+        for _, target in pairs(Players:GetPlayers()) do
+            -- ยิงเฉพาะศัตรู (ไม่ยิงทีมเดียวกัน)
+            if target ~= LocalPlayer and target.Team ~= LocalPlayer.Team then
+                local tChar = target.Character
+                if tChar and tChar:FindFirstChild("HumanoidRootPart") and tChar.Humanoid.Health > 0 then
+                    local pos = tChar.HumanoidRootPart.Position
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(pos)
+                    
+                    -- ยิงเมื่ออยู่ในวงกลม FOV และในระยะที่กำหนด
+                    if onScreen then
+                        local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - FOVCircle.Position).Magnitude
+                        local worldDist = (char.HumanoidRootPart.Position - pos).Magnitude
+                        
+                        if mouseDist < FOV_SIZE and worldDist < SHOOT_RANGE then
+                            tool.RemoteEvent:FireServer(pos)
+                        end
                     end
                 end
             end
         end
     end
-    return target
-end
-
--- 4. รันระบบอัปเดต
-RunService.RenderStepped:Connect(function()
-    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    if tool and tool:FindFirstChild("RemoteEvent") then
-        local target = GetClosestToMouse()
-        if target then
-            -- สั่งยิงไปที่เป้าหมายในวง
-            tool.RemoteEvent:FireServer(target.Position)
-        end
-    end
 end)
 
-for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
+for _, p in pairs(Players:GetPlayers()) do CreateESP(p) end
 Players.PlayerAdded:Connect(CreateESP)
 
-print("TikTok Silent Aim Loaded! วงกลมสีขาวล็อคเป้าเรียบร้อย")
-
+print("V8: ระบบดั้งเดิมกลับมาแล้ว! เห็นโจรแดง นักโทษส้ม แน่นอน")
