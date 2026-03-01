@@ -1,86 +1,81 @@
--- [[ Macbook Eleven - Haki Master V1 (Sound Edition) ]] --
--- GitHub: dbgetff-max
+-- [[ Eleven Disaster Hub: Storm & Disaster ]] --
+-- สำหรับ Android (Delta) | เน้นเอฟเฟกต์ภัยพิบัติ
 
 local player = game.Players.LocalPlayer
-local mouse = player:GetMouse()
-local HakiStatus = false 
-local cooldown = false
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
 
--- [[ ระบบเสียงฮาคิ ]] --
-local HakiSound = Instance.new("Sound")
-HakiSound.SoundId = "rbxassetid://6551500742" -- เสียงฮาคิราชันย์แชงคูส
-HakiSound.Volume = 5
-HakiSound.Parent = game:GetService("SoundService")
-
--- [[ ส่วนของ UI ]] --
+-- [[ ระบบ UI ]] --
 local ScreenGui = Instance.new("ScreenGui")
-local ToggleFrame = Instance.new("Frame")
-local ToggleButton = Instance.new("TextButton")
-local StatusLabel = Instance.new("TextLabel")
+local MainFrame = Instance.new("Frame")
+local TornadoBtn = Instance.new("TextButton")
+local QuakeBtn = Instance.new("TextButton")
 local UICorner = Instance.new("UICorner")
 
 ScreenGui.Parent = game.CoreGui
-ToggleFrame.Parent = ScreenGui
-ToggleFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-ToggleFrame.Position = UDim2.new(0.85, 0, 0.4, 0)
-ToggleFrame.Size = UDim2.new(0, 120, 0, 60)
-ToggleFrame.Active = true
-ToggleFrame.Draggable = true
-UICorner.Parent = ToggleFrame
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 50, 100)
+MainFrame.Position = UDim2.new(0.7, 0, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 150, 0, 110)
+MainFrame.Active = true
+MainFrame.Draggable = true
+UICorner.Parent = MainFrame
 
-ToggleButton.Parent = ToggleFrame
-ToggleButton.Size = UDim2.new(1, 0, 0.6, 0)
-ToggleButton.Position = UDim2.new(0, 0, 0.4, 0)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-ToggleButton.Text = "RELEASE"
-ToggleButton.TextColor3 = Color3.new(1, 1, 1)
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.TextSize = 14
+-- ปุ่มเสกพายุ
+TornadoBtn.Parent = MainFrame
+TornadoBtn.Size = UDim2.new(0.9, 0, 0.4, 0)
+TornadoBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
+TornadoBtn.Text = "เสกพายุหมุน"
+TornadoBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TornadoBtn.TextColor3 = Color3.new(1, 1, 1)
 
-StatusLabel.Parent = ToggleFrame
-StatusLabel.Size = UDim2.new(1, 0, 0.4, 0)
-StatusLabel.Text = "HAKI: OFF"
-StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Font = Enum.Font.GothamBold
+-- ปุ่มแผ่นดินไหว
+QuakeBtn.Parent = MainFrame
+QuakeBtn.Size = UDim2.new(0.9, 0, 0.4, 0)
+QuakeBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+QuakeBtn.Text = "แผ่นดินไหว"
+QuakeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+QuakeBtn.TextColor3 = Color3.new(1, 1, 1)
 
--- [[ ฟังก์ชันปล่อยพลังพร้อมเสียง ]] --
-local function executeHaki()
-    if not HakiStatus or cooldown then return end
-    cooldown = true
+-- [[ ฟังก์ชันเสกพายุ (Tornado) ]] --
+TornadoBtn.MouseButton1Click:Connect(function()
+    print("ปลดปล่อยพายุแห่ง Eleven!")
+    local tornadoPart = Instance.new("Part")
+    tornadoPart.Anchored = true
+    tornadoPart.CanCollide = false
+    tornadoPart.Position = root.Position + Vector3.new(0, 10, 0)
+    tornadoPart.Size = Vector3.new(1, 1, 1)
+    tornadoPart.Transparency = 0.5
+    tornadoPart.Parent = workspace
     
-    -- เล่นเสียงแชงคูส
-    HakiSound:Play()
-    
-    -- ประกาศแชท
-    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
-        "[ พลังแห่งราชันย์: จงสยบแทบเท้า Macbook Eleven! ]", 
-        "All"
-    )
-
-    -- เอฟเฟกต์หน้าจอสั่นและทำให้คนสลบ (PlatformStand)
-    for _, v in pairs(game.Players:GetPlayers()) do
-        if v ~= player and v.Character and v.Character:FindFirstChild("Humanoid") then
-            local dist = (player.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude
-            if dist < 35 then
-                v.Character.Humanoid.PlatformStand = true
-                task.delay(4, function() v.Character.Humanoid.PlatformStand = false end)
+    -- สร้างเอฟเฟกต์หมุนวน
+    task.spawn(function()
+        for i = 1, 100 do
+            for _, v in pairs(game.Players:GetPlayers()) do
+                if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                    local targetRoot = v.Character.HumanoidRootPart
+                    local dist = (tornadoPart.Position - targetRoot.Position).Magnitude
+                    if dist < 40 then
+                        -- ดูดคนเข้าหาพายุและหมุน
+                        targetRoot.CFrame = targetRoot.CFrame * CFrame.Angles(0, math.rad(20), 0)
+                        targetRoot.Velocity = Vector3.new(0, 50, 0) -- ทำให้ตัวลอย
+                    end
+                end
             end
+            task.wait(0.1)
         end
-    end
-    
-    task.wait(5) -- คูลดาวน์เสียง
-    cooldown = false
-end
-
--- ระบบ Toggle และการกดปุ่ม
-StatusLabel.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        HakiStatus = not HakiStatus
-        StatusLabel.Text = HakiStatus and "HAKI: ON" or "HAKI: OFF"
-        StatusLabel.TextColor3 = HakiStatus and Color3.fromRGB(170, 0, 255) or Color3.fromRGB(255, 0, 0)
-    end
+        tornadoPart:Destroy()
+    end)
 end)
 
-ToggleButton.MouseButton1Click:Connect(executeHaki)
-mouse.KeyDown:Connect(function(key) if key:lower() == "h" then executeHaki() end end)
+-- [[ ฟังก์ชันแผ่นดินไหว (Earthquake) ]] --
+QuakeBtn.MouseButton1Click:Connect(function()
+    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
+        "[ ภัยพิบัติ: แผ่นดินไหวโดย Macbook Eleven! ]", "All"
+    )
+    for i = 1, 20 do
+        local shake = Vector3.new(math.random(-2,2), 0, math.random(-2,2))
+        workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame * CFrame.new(shake)
+        task.wait(0.05)
+    end
+end)
