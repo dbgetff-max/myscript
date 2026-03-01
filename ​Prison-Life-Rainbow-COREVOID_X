@@ -1,0 +1,117 @@
+-- [[ Prison Life POV + FOV Circle (Rainbow Style) - Credit by @COREVOID_X ]] --
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- 1. ตั้งค่า POV (FOV) และ No Recoil
+Camera.FieldOfView = 90
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+local oldNamecall = mt.__namecall
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    if method == "FireServer" and self.Name == "RecoilEvent" then return nil end
+    return oldNamecall(self, unpack(args))
+end)
+setreadonly(mt, true)
+
+-- 2. ระบบ Notification & Rainbow Watermark
+StarterGui:SetCore("SendNotification", {
+    Title = "COREVOID_X RAINBOW";
+    Text = "Subscribe to @COREVOID_X";
+    Duration = 5;
+})
+
+-- ฟังก์ชันสำหรับสร้างสีรุ้ง (Rainbow Fade Effect)
+local function GetRainbowColor()
+    local t = tick()
+    local hue = (t % 5) / 5 -- ปรับความเร็วการเปลี่ยนสีตรงนี้ (เลขยิ่งมากยิ่งช้า)
+    return Color3.fromHSV(hue, 1, 1)
+end
+
+-- ระบบ Watermark @COREVOID_X มุมซ้ายล่างแบบสีรุ้ง
+local COREVOID_X = Drawing.new("Text")
+COREVOID_X.Visible = true
+COREVOID_X.Text = "@COREVOID_X - Subscribe!"
+COREVOID_X.Size = 20
+COREVOID_X.Center = false
+COREVOID_X.Outline = true
+COREVOID_X.OutlineColor = Color3.new(0, 0, 0)
+COREVOID_X.Position = Vector2.new(10, Camera.ViewportSize.Y - 30)
+
+-- 3. ระบบ POV Circle (Rainbow Fade Effect)
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1.5
+FOVCircle.Filled = false
+FOVCircle.Radius = 150
+FOVCircle.Visible = true
+FOVCircle.Transparency = 0.8
+FOVCircle.NumSides = 64
+
+-- อัปเดต Rainbow Effect และตำแหน่งวงกลม
+RunService.RenderStepped:Connect(function()
+    local RainbowColor = GetRainbowColor()
+    FOVCircle.Color = RainbowColor
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    COREVOID_X.Color = RainbowColor
+end)
+
+-- 4. ระบบเช็คศัตรูในวงกลม (Silent Aim In-Circle Only)
+local function GetClosestToMouse()
+    local Target = nil
+    local Dist = math.huge
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer and v.Team ~= LocalPlayer.Team and v.Character and v.Character:FindFirstChild("Head") then
+            local Pos, OnScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
+            if OnScreen then
+                local MouseDist = (Vector2.new(Pos.X, Pos.Y) - FOVCircle.Position).Magnitude
+                if MouseDist <= FOVCircle.Radius and MouseDist < Dist then
+                    Dist = MouseDist
+                    Target = v
+                end
+            end
+        end
+    end
+    return Target
+end
+
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    if method == "FireServer" and self.Name == "ShootEvent" then
+        local Target = GetClosestToMouse()
+        if Target then args[1] = Target.Character.Head.Position end
+    end
+    return oldNamecall(self, unpack(args))
+end)
+
+-- 5. ระบบ ESP แยกสี (ส้ม, แดง, ฟ้า) + ชื่อ
+local function CreateESP(Player)
+    local NameTag = Drawing.new("Text")
+    local Box = Drawing.new("Square")
+    RunService.RenderStepped:Connect(function()
+        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player ~= LocalPlayer and Player.Character.Humanoid.Health > 0 then
+            local Vector, OnScreen = Camera:WorldToViewportPoint(Player.Character.HumanoidRootPart.Position)
+            if OnScreen then
+                local Color = Color3.fromRGB(255, 255, 255)
+                if Player.Team.Name == "Prisoners" then Color = Color3.fromRGB(255, 165, 0)
+                elseif Player.Team.Name == "Criminals" then Color = Color3.fromRGB(255, 0, 0)
+                elseif Player.Team.Name == "Guards" then Color = Color3.fromRGB(0, 191, 255)
+                end
+                NameTag.Visible, NameTag.Text, NameTag.Color = true, "["..Player.Name.."]", Color
+                NameTag.Position = Vector2.new(Vector.X, Vector.Y - (2200 / Vector.Z) / 2 - 15)
+                NameTag.Size, NameTag.Center, NameTag.Outline = 16, true, true
+                Box.Visible, Box.Color = true, Color
+                Box.Size = Vector2.new(1500 / Vector.Z, 2200 / Vector.Z)
+                Box.Position = Vector2.new(Vector.X - Box.Size.X / 2, Vector.Y - Box.Size.Y / 2)
+                Box.Thickness = 1.2
+            else NameTag.Visible, Box.Visible = false, false end
+        else NameTag.Visible, Box.Visible = false, false end
+    end)
+end
+for _, v in pairs(Players:GetPlayers()) do CreateESP(v) end
+Players.PlayerAdded:Connect(CreateESP)
+
