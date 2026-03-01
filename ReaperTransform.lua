@@ -1,112 +1,86 @@
 --[[
-  THE WORLD ENDER METEOR (ULTIMATE EDITION)
-  คุณสมบัติ: ใหญ่เท่าเกาะ, ระเบิดล้างแมพ, เจ้าของไม่ตาย (God Mode เฉพาะตอนระเบิด)
+  THE BLACK HOLE METEOR (BRING ALL & EXPLODE)
+  ความสามารถ: ดึงทุกคนมาหาเรา -> ล็อกตัว -> เรียกอุกกาบาตลงหัว
 --]]
 
 local player = game.Players.LocalPlayer
-local mouse = player:GetMouse()
 local Debris = game:GetService("Debris")
 
--- === 1. สร้างปุ่มเรียกอุกกาบาตยักษ์ ===
+-- === 1. สร้างปุ่มเรียกหายนะ (GUI) ===
 local screenGui = Instance.new("ScreenGui", player.PlayerGui)
 screenGui.ResetOnSpawn = false
-
 local btn = Instance.new("TextButton", screenGui)
 btn.Size = UDim2.new(0, 250, 0, 70)
 btn.Position = UDim2.new(0.5, -125, 0.1, 0)
-btn.Text = "☄️ มหาอุกกาบาตล้างโลก"
-btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- สีแดงเดือด
+btn.Text = "🌀 ดึงมาฆ่าล้างเซิร์ฟ"
+btn.BackgroundColor3 = Color3.fromRGB(100, 0, 200) -- สีม่วงเข้ม
 btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 btn.Font = Enum.Font.GothamBlack
 btn.TextSize = 22
 Instance.new("UICorner", btn)
 
--- === 2. ฟังก์ชันเรียกอุกกาบาต ===
-local function SummonGiganticMeteor()
-    local targetPos = mouse.Hit.p
-    local spawnPos = targetPos + Vector3.new(0, 600, 0) -- ตกจากฟ้าสูงมาก
+-- === 2. ฟังก์ชันดึงทุกคน (Bring All) ===
+local function BringAllPlayers()
+	local myHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not myHrp then return end
 
-    -- สร้างลูกอุกกาบาต (ขนาดใหญ่เท่าเกาะ)
-    local meteor = Instance.new("Part")
-    meteor.Name = "WorldEnder"
-    meteor.Shape = Enum.PartType.Ball
-    meteor.Size = Vector3.new(150, 150, 150) -- ขนาดมหึมา 150 หน่วย!
-    meteor.Position = spawnPos
-    meteor.BrickColor = BrickColor.new("Black")
-    meteor.Material = Enum.Material.Slate
-    meteor.CanCollide = false
-    meteor.Parent = game.Workspace
-
-    -- เอฟเฟกต์ไฟนรก (ใหญ่พิเศษ)
-    local fire = Instance.new("Fire", meteor)
-    fire.Size = 200
-    fire.Heat = 100
-    
-    -- เสียงตอนตกลงมา (สร้างความน่ากลัว)
-    local sound = Instance.new("Sound", meteor)
-    sound.SoundId = "rbxassetid://12222030" -- เสียงระเบิด/ลมพัดแรง
-    sound.Volume = 10
-    sound:Play()
-
-    -- แรงส่งให้อุกกาบาตถล่มพื้น
-    local velocity = Instance.new("BodyVelocity", meteor)
-    velocity.MaxForce = Vector3.new(1, 1, 1) * math.huge
-    velocity.Velocity = (targetPos - spawnPos).Unit * 300 -- พุ่งเร็วมาก
-
-    -- เช็คเมื่อถึงพื้น
-    meteor.Touched:Connect(function(hit)
-        if hit.Parent ~= player.Character and not hit:IsDescendantOf(player.Character) then
-            meteor:Destroy()
-
-            -- --- ระบบป้องกันเจ้าของสคริปต์ (God Mode ชั่วคราว) ---
-            if player.Character and player.Character:FindFirstChild("Humanoid") then
-                player.Character.Humanoid.Health = 100 -- ฮีลเลือดเต็ม
-                local ff = Instance.new("ForceField", player.Character) -- ใส่เกราะกันระเบิด
-                Debris:AddItem(ff, 5) -- เกราะหายไปหลังระเบิดจบ
-            end
-
-            -- --- ระเบิดมหาประลัย (ล้างแมพ) ---
-            local explosion = Instance.new("Explosion")
-            explosion.Position = meteor.Position
-            explosion.BlastRadius = 1000 -- รัศมีกว้าง 1000 หน่วย (ทั่วทั้งเกาะ)
-            explosion.BlastPressure = math.huge -- แรงดันมหาศาล (กระจุย)
-            explosion.DestroyJointRadiusPercent = 1 -- ทำลายทุกข้อต่อ (ตายทันที)
-            explosion.Parent = game.Workspace
-
-            -- เอฟเฟกต์แสงสีขาววาบตอนระเบิด
-            local flash = Instance.new("ColorCorrectionEffect", game.Lighting)
-            flash.Brightness = 1
-            game:GetService("TweenService"):Create(flash, TweenInfo.new(2), {Brightness = 0}):Play()
-            Debris:AddItem(flash, 2)
-
-            -- ควันดำปกคลุมแมพ
-            local boomPart = Instance.new("Part", game.Workspace)
-            boomPart.Anchored = true
-            boomPart.CanCollide = false
-            boomPart.Transparency = 1
-            boomPart.Position = meteor.Position
-            
-            local smoke = Instance.new("ParticleEmitter", boomPart)
-            smoke.Color = ColorSequence.new(Color3.fromRGB(0, 0, 0))
-            smoke.Size = NumberSequence.new(100, 200)
-            smoke.Rate = 2000
-            smoke.Lifetime = NumberRange.new(5, 10)
-            smoke.EmitCount = 200
-            
-            Debris:AddItem(boomPart, 10)
-        end
-    end)
+	for _, v in pairs(game.Players:GetPlayers()) do
+		if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+			-- วาร์ปทุกคนมาข้างหน้าเรา 5 หน่วย
+			v.Character.HumanoidRootPart.CFrame = myHrp.CFrame * CFrame.new(0, 0, -5)
+		end
+	end
 end
 
--- === 3. ระบบกดปุ่ม ===
-btn.MouseButton1Click:Connect(function()
-    btn.Text = "🚨 ระบบกำลังรีโหลด..."
-    btn.Active = false
-    SummonGiganticMeteor()
-    
-    task.wait(5) -- คูลดาวน์ 5 วินาที
-    btn.Text = "☄️ มหาอุกกาบาตล้างโลก"
-    btn.Active = true
-end)
+-- === 3. ฟังก์ชันเรียกอุกกาบาตยักษ์ลงจุดที่ยืน ===
+local function SummonTheEnd()
+	local myHrp = player.Character:FindFirstChild("HumanoidRootPart")
+	local targetPos = myHrp.Position
+	local spawnPos = targetPos + Vector3.new(0, 400, 0)
 
-print("The World Ender Script Loaded! รันเสร็จแล้วกดปุ่มเพื่อล้างโลก!")
+	-- สร้างอุกกาบาต
+	local meteor = Instance.new("Part", game.Workspace)
+	meteor.Shape = Enum.PartType.Ball
+	meteor.Size = Vector3.new(100, 100, 100)
+	meteor.Position = spawnPos
+	meteor.BrickColor = BrickColor.new("Really black")
+	meteor.Material = Enum.Material.Neon
+	meteor.CanCollide = false
+
+	-- แรงพุ่ง
+	local bv = Instance.new("BodyVelocity", meteor)
+	bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+	bv.Velocity = Vector3.new(0, -400, 0)
+
+	-- เมื่อถึงพื้น
+	meteor.Touched:Connect(function()
+		meteor:Destroy()
+		
+		-- ใส่เกราะให้ตัวเอง
+		local ff = Instance.new("ForceField", player.Character)
+		Debris:AddItem(ff, 5)
+
+		-- ระเบิดมหาประลัย
+		local exp = Instance.new("Explosion", game.Workspace)
+		exp.Position = targetPos
+		exp.BlastRadius = 500
+		exp.BlastPressure = math.huge
+		exp.DestroyJointRadiusPercent = 1
+		
+		print("Everyone has been eliminated.")
+	end)
+end
+
+-- === 4. ระบบทำงานเมื่อกดปุ่ม ===
+btn.MouseButton1Click:Connect(function()
+	btn.Text = "🌀 กำลังดึงตัว..."
+	BringAllPlayers() -- ดึงมากองรวมกัน
+	
+	task.wait(0.5) -- รอแป๊บเดียวให้คนมาถึง
+	
+	btn.Text = "☄️ อวสาน!"
+	SummonTheEnd() -- บึ้มทิ้ง
+	
+	task.wait(5)
+	btn.Text = "🌀 ดึงมาฆ่าล้างเซิร์ฟ"
+end)
