@@ -1,44 +1,44 @@
--- [[ CHEATING PRO MASTER V1 - FIX LOCK & VISIBLE FOV ]] --
+-- [[ CHEATING PRO MASTER V1 - TIKTOK SILENT AIM EDITION ]] --
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local RunService = game:GetService("RunService")
 
--- [[ การตั้งค่า ]] --
-_G.FOV_Radius = 150 -- ปรับวงกลมให้ใหญ่ขึ้นนิดนึงเพื่อให้ล็อคง่าย
-_G.ShootRange = 300 -- ระยะยิงไกลขึ้น
+-- [[ SETTINGS ]] --
+_G.SilentAimEnabled = true
+_G.FOV_Radius = 130
+_G.TeamCheck = true
 
--- 1. วงกลมสีเขียว (ปรับให้มองเห็นชัดขึ้น)
+-- 1. วงกลม Silent Aim สีขาว (ถอดแบบจากคลิป)
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Visible = true
-FOVCircle.Color = Color3.fromRGB(0, 255, 0) 
-FOVCircle.Thickness = 1.5 -- ปรับความหนาให้มองเห็นได้ชัด
-FOVCircle.NumSides = 64
+FOVCircle.Color = Color3.fromRGB(255, 255, 255) -- สีขาว
+FOVCircle.Thickness = 1
+FOVCircle.NumSides = 100
 FOVCircle.Radius = _G.FOV_Radius
+FOVCircle.Transparency = 0.5
 FOVCircle.Filled = false
-FOVCircle.Transparency = 0.7 
 
--- 2. ระบบ ESP แยกสี (เน้นสีชัดๆ ตามภาพที่คุณส่งมา)
+-- 2. ESP แยกสีทีม (โจร=แดง, นักโทษ=ส้ม, ตำรวจ=ฟ้า)
 local function CreateESP(Player)
     Player.CharacterAdded:Connect(function(Character)
         local Head = Character:WaitForChild("Head", 10)
         local bgui = Instance.new("BillboardGui", Head)
+        bgui.Name = "MasterESP"
         bgui.AlwaysOnTop = true
         bgui.Size = UDim2.new(0, 200, 0, 50)
         bgui.StudsOffset = Vector3.new(0, 2.5, 0)
         local nametag = Instance.new("TextLabel", bgui)
         nametag.BackgroundTransparency = 1
         nametag.Size = UDim2.new(1, 0, 1, 0)
-        nametag.TextSize = 18 -- ตัวใหญ่ขึ้น
+        nametag.TextSize = 16
         nametag.Font = Enum.Font.SourceSansBold
-        nametag.TextStrokeTransparency = 0
         
         RunService.Heartbeat:Connect(function()
             if Player and Player.Parent and Character and Character:FindFirstChild("Head") then
                 local team = Player.Team and Player.Team.Name or "Neutral"
                 nametag.Text = Player.Name .. " [" .. team .. "]"
-                -- ปรับสีตามภาพถ่าย
                 if team == "Police" or team == "Guards" then nametag.TextColor3 = Color3.fromRGB(0, 162, 255)
                 elseif team == "Criminals" then nametag.TextColor3 = Color3.fromRGB(255, 0, 0)
                 elseif team == "Inmates" or team == "Prisoners" then nametag.TextColor3 = Color3.fromRGB(255, 165, 0)
@@ -48,24 +48,21 @@ local function CreateESP(Player)
     end)
 end
 
--- 3. ฟังก์ชันล็อคเป้า (เน้นล็อคหัวให้โดนชัวร์ๆ)
-local function GetClosestTarget()
+-- 3. ระบบ Silent Aim (ยิงเข้าเป้าที่ใกล้ที่สุดในวง)
+local function GetClosestToMouse()
     local target = nil
-    local shortestMouseDist = _G.FOV_Radius
+    local shortestDist = _G.FOV_Radius
 
     for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Team ~= LocalPlayer.Team then
-            if v.Character and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
+            -- เช็คทีม
+            if not _G.TeamCheck or v.Team ~= LocalPlayer.Team then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
                 if onScreen then
-                    local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                    if mouseDist < shortestMouseDist then
-                        -- เช็คระยะห่างตัวละครด้วย
-                        local worldDist = (LocalPlayer.Character.HumanoidRootPart.Position - v.Character.Head.Position).Magnitude
-                        if worldDist < _G.ShootRange then
-                            target = v.Character.Head
-                            shortestMouseDist = mouseDist
-                        end
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                    if dist < shortestDist then
+                        target = v.Character.HumanoidRootPart
+                        shortestDist = dist
                     end
                 end
             end
@@ -74,18 +71,21 @@ local function GetClosestTarget()
     return target
 end
 
--- 4. รันระบบยิง
+-- 4. รันระบบอัปเดต
 RunService.RenderStepped:Connect(function()
     FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
     if tool and tool:FindFirstChild("RemoteEvent") then
-        local targetPart = GetClosestTarget()
-        if targetPart then
-            -- ส่งข้อมูลยิงไปที่ "หัว" ของเป้าหมาย
-            tool.RemoteEvent:FireServer(targetPart.Position)
+        local target = GetClosestToMouse()
+        if target then
+            -- สั่งยิงไปที่เป้าหมายในวง
+            tool.RemoteEvent:FireServer(target.Position)
         end
     end
 end)
 
 for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p) end end
 Players.PlayerAdded:Connect(CreateESP)
+
+print("TikTok Silent Aim Loaded! วงกลมสีขาวล็อคเป้าเรียบร้อย")
+
