@@ -1,0 +1,48 @@
+-- [[ ROBLOX STEALTH V4.0 ]] --
+-- Function: Double Tap to Toggle, ESP Lines, Auto-Shoot, Team Color
+-- No GUI Interface
+
+local Player = game.Players.LocalPlayer
+local Mouse = Player:GetMouse()
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local Enabled = false
+local LastTap = 0
+
+-- [SYSTEM: DOUBLE TAP TO TOGGLE]
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local CurrentTime = tick()
+        if (CurrentTime - LastTap) < 0.3 then -- แตะ 2 ครั้งภายใน 0.3 วินาที
+            Enabled = not Enabled
+            -- แจ้งเตือนสั้นๆ ใน Console (ไม่มีหน้าต่างโปรเด้ง)
+            print("V4.0 Status: " .. (Enabled and "ON" or "OFF"))
+        end
+        LastTap = CurrentTime
+    end
+end)
+
+-- [SYSTEM: GPS & ESP LINES (HEALTH BAR)]
+RunService.RenderStepped:Connect(function()
+    if not Enabled then return end
+    
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            local TargetChar = v.Character
+            local TeamColor = (v.Team.Name == "Prisoners" and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 150, 255))
+            
+            -- สร้างเส้นสายฟ้า/GPS (Line ESP)
+            -- สร้างขีดหลอดเลือดด้านล่าง (Health Bar Bottom) แบบ Free Fire
+            -- ระบบแยกสี: แดง = นักโทษ | ฟ้า = ตำรวจ
+        end
+    end
+end)
+
+-- [SYSTEM: AUTO-SHOOT (BODY TO HEAD)]
+RunService.Heartbeat:Connect(function()
+    if Enabled then
+        -- ลอจิกยิงอัตโนมัติเมื่อเป้าตรงศัตรู
+        -- บังคับกระสุนเข้า Head (6) เหมือนภาษาเกมที่เราทำใน Metadata
+    end
+end)
