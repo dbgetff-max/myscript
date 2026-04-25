@@ -1,70 +1,80 @@
--- [[ MOD MENU SETTINGS ]]
-local MenuConfig = {
+-- [[ CONFIGURATION ]]
+local ESP_SETTINGS = {
     Enabled = true,
-    TeamColors = {
+    TracerColor = {
         Prisoner = Color3.fromRGB(255, 165, 0), -- ส้ม
         Police = Color3.fromRGB(0, 191, 255),    -- ฟ้า
         Criminal = Color3.fromRGB(255, 0, 0)     -- แดง
-    },
-    TeleportPoints = {
-        BaseCriminal = Vector3.new(100, 10, 200), -- แก้พิกัดฐานผู้ก่อการร้ายตรงนี้
-        PoliceStation = Vector3.new(-50, 15, -100) -- แก้พิกัดโรงพักตรงนี้
     }
 }
 
--- [[ 1. ฟังก์ชัน ESP & Health Bar (GPS) ]]
+-- [[ 1. ระบบ ESP & GPS (ทำงานทันที) ]]
+-- ฟังก์ชันวาดเส้นและแสดงตำแหน่ง
 local function CreateESP(player)
     if player == game.Players.LocalPlayer then return end
-    
-    local function UpdateESP()
-        local connection
-        connection = game:GetService("RunService").RenderStepped:Connect(function()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and MenuConfig.Enabled then
-                -- (ในที่นี้คือ Logic การวาดเส้น Tracer และหลอดเลือด)
-                -- หมายเหตุ: Delta ต้องรองรับ Drawing Library เพื่อให้แสดงผลได้สวยงามแบบ Free Fire
+
+    local function CharacterAdded(char)
+        local root = char:WaitForChild("HumanoidRootPart", 10)
+        local hum = char:WaitForChild("Humanoid", 10)
+        if not root or not hum then return end
+
+        -- สร้างเส้น Tracer (แบบ Free Fire)
+        local line = Drawing.new("Line")
+        line.Visible = false
+        line.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y) -- เริ่มจากขอบล่างจอ
+        line.Thickness = 1.5
+        line.Transparency = 1
+
+        -- ระบบอัปเดตตำแหน่งแบบ Real-time
+        local updater
+        updater = game:GetService("RunService").RenderStepped:Connect(function()
+            if char and char:Parent() and root and root.Parent and hum.Health > 0 then
+                local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(root.Position)
+                
+                if onScreen then
+                    -- เลือกสีตามทีม
+                    local teamColor = Color3.new(1, 1, 1) -- สีขาวพื้นฐาน
+                    if player.Team then
+                        if player.Team.Name == "Prisoners" or player.Team.Name == "Prisoner" then
+                            teamColor = ESP_SETTINGS.TracerColor.Prisoner
+                        elseif player.Team.Name == "Police" then
+                            teamColor = ESP_SETTINGS.TracerColor.Police
+                        elseif player.Team.Name == "Criminals" or player.Team.Name == "Criminal" then
+                            teamColor = ESP_SETTINGS.TracerColor.Criminal
+                        end
+                    end
+
+                    line.To = Vector2.new(pos.X, pos.Y)
+                    line.Color = teamColor
+                    line.Visible = true
+                else
+                    line.Visible = false
+                end
             else
-                if not player.Parent then connection:Disconnect() end
+                line.Visible = false
+                if not player.Parent then
+                    line:Remove()
+                    updater:Disconnect()
+                end
             end
         end)
     end
-    UpdateESP()
+
+    if player.Character then CharacterAdded(player.Character) end
+    player.CharacterAdded:Connect(CharacterAdded)
 end
 
--- [[ 2. ระบบวาร์ป (Teleport) ]]
-local function TeleportTo(position)
-    local char = game.Players.LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = CFrame.new(position)
-    end
-end
-
--- [[ 3. ระบบตรวจจับ 3 นิ้ว แตะ 2 ครั้ง (Toggle) ]]
-local UIS = game:GetService("UserInputService")
-local lastTap = 0
-local tapCount = 0
-
-UIS.TouchTapInWorld:Connect(function(touchPositions)
-    if #touchPositions == 3 then -- ตรวจสอบว่าใช้ 3 นิ้ว
-        local currentTime = tick()
-        if currentTime - lastTap < 0.5 then -- ระยะเวลา Double Tap
-            MenuConfig.Enabled = not MenuConfig.Enabled
-            
-            -- แสดงสถานะการเปิด/ปิด
-            local status = MenuConfig.Enabled and "เปิดใช้งาน" or "ปิดใช้งาน"
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Mod Status",
-                Text = "ฟังก์ชันทั้งหมด: " .. status,
-                Duration = 3
-            })
-        end
-        lastTap = currentTime
-    end
-end)
-
--- [[ 4. เริ่มทำงาน (Initialize) ]]
-for _, player in pairs(game.Players:GetPlayers()) do
-    CreateESP(player)
+-- [[ 2. เริ่มทำงานทันทีสำหรับทุกคนในเซิร์ฟเวอร์ ]]
+for _, v in pairs(game.Players:GetPlayers()) do
+    CreateESP(v)
 end
 game.Players.PlayerAdded:Connect(CreateESP)
 
-print("Script Loaded: ใช้ 3 นิ้วแตะหน้าจอ 2 ครั้งเพื่อเปิด/ปิด")
+-- [[ 3. ฟังชั่นเสริม: แสดงข้อความเมื่อรันสำเร็จ ]]
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Script Active",
+    Text = "ระบบ ESP และแยกสีทีมทำงานแล้ว",
+    Duration = 5
+})
+
+print("สคริปต์ทำงานอัตโนมัติเรียบร้อยแล้ว!")
