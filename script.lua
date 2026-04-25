@@ -1,73 +1,57 @@
--- [[ METEOR STRIKE SYSTEM ]]
-local player = game.Players.LocalPlayer
-local mouse = player:GetMouse()
-local RunService = game:GetService("RunService")
+-- สร้างหน้าจอ GUI แบบสดๆ
+local ScreenGui = Instance.new("ScreenGui")
+local MainButton = Instance.new("TextButton")
+local UICorner = Instance.new("UICorner")
 
--- สร้างเป้าเล็ง (Visual Circle)
-local circlePart = Instance.new("Part")
-circlePart.Size = Vector3.new(20, 0.2, 20)
-circlePart.Shape = Enum.PartType.Cylinder
-circlePart.Color = Color3.fromRGB(255, 0, 0)
-circlePart.Transparency = 0.5
-circlePart.CanCollide = false
-circlePart.Anchored = true
-circlePart.Material = Enum.Material.Neon
-circlePart.Parent = workspace
+-- ตั้งค่าหน้าจอ
+ScreenGui.Parent = game.CoreGui -- ใช้ CoreGui จะได้ไม่หายเวลาตาย
+ScreenGui.Name = "FastClicker"
 
--- ให้เป้าเล็งวิ่งตามนิ้ว/เมาส์
-RunService.RenderStepped:Connect(function()
-    if mouse.TargetFilter ~= circlePart then
-        circlePart.Position = mouse.Hit.p
+-- ตั้งค่าปุ่มกด
+MainButton.Parent = ScreenGui
+MainButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50) -- เริ่มต้นสีแดง
+MainButton.Position = UDim2.new(0.5, -40, 0.5, -40) -- อยู่กลางจอ
+MainButton.Size = UDim2.new(0, 80, 0, 80) -- ขนาดปุ่มวงกลม
+MainButton.Font = Enum.Font.GothamBold
+MainButton.Text = "OFF"
+MainButton.TextColor3 = Color3.new(1, 1, 1)
+MainButton.TextSize = 20
+MainButton.Draggable = true -- ลากย้ายที่ได้
+MainButton.Active = true
+
+-- ทำปุ่มให้กลม
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = MainButton
+
+local clicking = false
+
+-- ระบบคลิกรัว
+MainButton.MouseButton1Click:Connect(function()
+    clicking = not clicking
+    
+    if clicking then
+        MainButton.Text = "ON"
+        MainButton.BackgroundColor3 = Color3.fromRGB(50, 255, 50) -- เปลี่ยนเป็นสีเขียว
+        
+        task.spawn(function()
+            while clicking do
+                -- สั่งให้ตัวละครกดใช้ของที่ถืออยู่ (Tool)
+                local tool = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if tool then
+                    tool:Activate()
+                end
+                
+                -- คลิกหน้าจอแบบเสมือน (Virtual Click)
+                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                
+                task.wait(0.01) -- ความเร็ว (0.01 คือเร็วมาก)
+            end
+        end)
+    else
+        MainButton.Text = "OFF"
+        MainButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50) -- กลับเป็นสีแดง
     end
 end)
 
--- ฟังก์ชันสร้างอุกกาบาต
-local function DropMeteor(targetPos)
-    local meteor = Instance.new("Part")
-    meteor.Size = Vector3.new(10, 10, 10)
-    meteor.Shape = Enum.PartType.Ball
-    meteor.Color = Color3.fromRGB(255, 69, 0) -- สีส้มไฟ
-    meteor.Material = Enum.Material.Neon
-    meteor.CanCollide = false
-    meteor.Anchored = false
-    meteor.Position = targetPos + Vector3.new(0, 300, 0) -- เกิดบนฟ้า
-    meteor.Parent = workspace
-
-    -- เอฟเฟกต์ไฟ
-    local fire = Instance.new("Fire")
-    fire.Parent = meteor
-    fire.Size = 30
-
-    -- ใส่แรงพุ่งลงมา
-    local velocity = Instance.new("BodyVelocity")
-    velocity.Velocity = Vector3.new(0, -500, 0)
-    velocity.Parent = meteor
-
-    -- เมื่อถึงพื้นหรือชน
-    meteor.Touched:Connect(function(hit)
-        local explosion = Instance.new("Explosion")
-        explosion.Position = meteor.Position
-        explosion.BlastRadius = 50 -- รัศมีระเบิด
-        explosion.BlastPressure = 1000000 -- แรงระเบิด
-        explosion.Parent = workspace
-        
-        -- ทำลายอุกกาบาตหลังระเบิด
-        meteor:Destroy()
-    end)
-end
-
--- เมื่อกดคลิก (หรือแตะหน้าจอ) ให้ปล่อยอุกกาบาต
-mouse.Button1Down:Connect(function()
-    local targetLocation = mouse.Hit.p
-    
-    -- แจ้งเตือนก่อนตก
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Meteor Inbound!",
-        Text = "เป้าหมายถูกล็อคแล้ว!",
-        Duration = 2
-    })
-    
-    DropMeteor(targetLocation)
-end)
-
-print("สคริปต์อุกกาบาตทำงานแล้ว: คลิกตรงไหน ตกตรงนั้น!")
+print("มือสดกดเมนู: รันแล้ว! ลากปุ่มไว้ที่ไหนก็ได้แล้วกดเปิดได้เลย")
