@@ -1,80 +1,113 @@
 -- [[ CONFIGURATION ]]
-local ESP_SETTINGS = {
-    Enabled = true,
-    TracerColor = {
-        Prisoner = Color3.fromRGB(255, 165, 0), -- ส้ม
-        Police = Color3.fromRGB(0, 191, 255),    -- ฟ้า
-        Criminal = Color3.fromRGB(255, 0, 0)     -- แดง
+local ESP_CONFIG = {
+    Box = {
+        Enabled = true,
+        Thickness = 1.5, -- ความหนาของเส้นขอบ
+        Transparency = 0.8, -- ความเข้มของสี (0-1)
+    },
+    TeamColors = {
+        Prisoner = Color3.fromRGB(255, 165, 0), -- ส้ม (นักโทษ)
+        Police = Color3.fromRGB(0, 191, 255),    -- ฟ้า (ตำรวจ)
+        Criminal = Color3.fromRGB(255, 0, 0),     -- แดง (ผู้ก่อการร้าย)
+        Neutral = Color3.fromRGB(255, 255, 255)  -- ขาว (ไม่มีทีม)
     }
 }
 
--- [[ 1. ระบบ ESP & GPS (ทำงานทันที) ]]
--- ฟังก์ชันวาดเส้นและแสดงตำแหน่ง
-local function CreateESP(player)
-    if player == game.Players.LocalPlayer then return end
+-- [[ core functions ]]
+local currentCamera = workspace.CurrentCamera
+local runService = game:GetService("RunService")
+local localPlayer = game.Players.LocalPlayer
 
-    local function CharacterAdded(char)
-        local root = char:WaitForChild("HumanoidRootPart", 10)
-        local hum = char:WaitForChild("Humanoid", 10)
-        if not root or not hum then return end
+-- ฟังก์ชันดึงสีตามทีม
+local function GetPlayerTeamColor(player)
+    if player.Team then
+        local teamName = player.Team.Name
+        -- ตรวจสอบชื่อทีม (ปรับชื่อให้ตรงกับเกมของคุณได้ที่นี่)
+        if teamName:find("Prisoner") then
+            return ESP_CONFIG.TeamColors.Prisoner
+        elseif teamName:find("Police") then
+            return ESP_CONFIG.TeamColors.Police
+        elseif teamName:find("Criminal") then
+            return ESP_CONFIG.TeamColors.Criminal
+        end
+    end
+    return ESP_CONFIG.TeamColors.Neutral -- ถ้าไม่มีทีม
+end
 
-        -- สร้างเส้น Tracer (แบบ Free Fire)
-        local line = Drawing.new("Line")
-        line.Visible = false
-        line.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y) -- เริ่มจากขอบล่างจอ
-        line.Thickness = 1.5
-        line.Transparency = 1
+-- [[ main system ]]
+local function CreateESPBox(player)
+    if player == localPlayer then return end -- ไม่สร้างกล่องรอบตัวเอง
 
-        -- ระบบอัปเดตตำแหน่งแบบ Real-time
-        local updater
-        updater = game:GetService("RunService").RenderStepped:Connect(function()
-            if char and char:Parent() and root and root.Parent and hum.Health > 0 then
-                local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(root.Position)
+    -- สร้าง object Drawing สำหรับวาดกล่อง
+    local box = Drawing.new("Square")
+    box.Visible = false
+    box.Thickness = ESP_CONFIG.Box.Thickness
+    box.Transparency = ESP_CONFIG.Box.Transparency
+    box.Filled = false -- กล่องโปร่งใส ไม่ถมสีข้างใน
+
+    local function UpdateESP()
+        local connection
+        connection = runService.RenderStepped:Connect(function()
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+                
+                local char = player.Character
+                local rootPart = char.HumanoidRootPart
+                local humanoid = char.Humanoid
+                
+                -- แปลงตำแหน่ง 3D เป็น 2D บนหน้าจอ
+                local rootPos, onScreen = currentCamera:WorldToViewportPoint(rootPart.Position)
                 
                 if onScreen then
-                    -- เลือกสีตามทีม
-                    local teamColor = Color3.new(1, 1, 1) -- สีขาวพื้นฐาน
-                    if player.Team then
-                        if player.Team.Name == "Prisoners" or player.Team.Name == "Prisoner" then
-                            teamColor = ESP_SETTINGS.TracerColor.Prisoner
-                        elseif player.Team.Name == "Police" then
-                            teamColor = ESP_SETTINGS.TracerColor.Police
-                        elseif player.Team.Name == "Criminals" or player.Team.Name == "Criminal" then
-                            teamColor = ESP_SETTINGS.TracerColor.Criminal
-                        end
+                    -- คำนวณขนาดของกล่องตามระยะห่าง
+                    -- หาความสูงของตัวละคร
+                    local head = char:FindFirstChild("Head")
+                    if head then
+                        local headPos = currentCamera:WorldToViewportPoint(head.Position)
+                        local legPos = currentCamera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
+                        
+                        local height = math.abs(headPos.Y - legPos.Y)
+                        local width = height * 0.6 -- อัตราส่วนความกว้างของกล่อง
+                        
+                        -- ตั้งค่าขนาดและตำแหน่งกล่อง
+                        box.Size = Vector2.new(width, height)
+                        box.Position = Vector2.new(rootPos.X - width / 2, rootPos.Y - height / 2)
+                        
+                        -- อัปเดตสีตามทีม
+                        box.Color = GetPlayerTeamColor(player)
+                        
+                        box.Visible = true
+                    else
+                        box.Visible = false
                     end
-
-                    line.To = Vector2.new(pos.X, pos.Y)
-                    line.Color = teamColor
-                    line.Visible = true
                 else
-                    line.Visible = false
+                    box.Visible = false -- นอกจอ ไม่แสดง
                 end
             else
-                line.Visible = false
-                if not player.Parent then
-                    line:Remove()
-                    updater:Disconnect()
+                box.Visible = false -- ตาย หรือไม่มีตัวละคร ไม่แสดง
+                if not player.Parent then -- ถ้าผู้เล่นออกจากเกม
+                    box:Remove()
+                    connection:Disconnect()
                 end
             end
         end)
     end
 
-    if player.Character then CharacterAdded(player.Character) end
-    player.CharacterAdded:Connect(CharacterAdded)
+    -- เริ่มทำงาน
+    if player.Character then UpdateESP() end
+    player.CharacterAdded:Connect(UpdateESP)
 end
 
--- [[ 2. เริ่มทำงานทันทีสำหรับทุกคนในเซิร์ฟเวอร์ ]]
-for _, v in pairs(game.Players:GetPlayers()) do
-    CreateESP(v)
+-- [[ 2. RUN IMMEDIATELY FOR EVERYONE ]]
+for _, p in pairs(game.Players:GetPlayers()) do
+    CreateESPBox(p)
 end
-game.Players.PlayerAdded:Connect(CreateESP)
+game.Players.PlayerAdded:Connect(CreateESPBox)
 
--- [[ 3. ฟังชั่นเสริม: แสดงข้อความเมื่อรันสำเร็จ ]]
+-- แสดงข้อความแจ้งเตือน (ลบออกได้ถ้าไม่ต้องการ)
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Script Active",
-    Text = "ระบบ ESP และแยกสีทีมทำงานแล้ว",
+    Title = "ESP กล่องทำงานแล้ว",
+    Text = "แยกสี: ฟ้า(ตำรวจ), ส้ม(นักโทษ), แดง(Criminal)",
     Duration = 5
 })
 
-print("สคริปต์ทำงานอัตโนมัติเรียบร้อยแล้ว!")
+print("สคริปต์ ESP Box (ทำงานอัตโนมัติ) ได้รับการโหลดแล้ว")
