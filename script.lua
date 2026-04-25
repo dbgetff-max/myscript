@@ -1,57 +1,80 @@
--- สร้างหน้าจอ GUI แบบสดๆ
-local ScreenGui = Instance.new("ScreenGui")
-local MainButton = Instance.new("TextButton")
-local UICorner = Instance.new("UICorner")
+-- [[ COMBAT & WEAPON SYSTEM ]]
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+local RunService = game:GetService("RunService")
 
--- ตั้งค่าหน้าจอ
-ScreenGui.Parent = game.CoreGui -- ใช้ CoreGui จะได้ไม่หายเวลาตาย
-ScreenGui.Name = "FastClicker"
+-- 1. ฟังก์ชันดึงอาวุธ (พยายามดึงปืนจากแสงสว่างในแมพ)
+local function GetWeapons()
+    -- พยายามหาปืนจากกลุ่มของที่หล่นพื้น หรือในกระเป๋า (Backpack)
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("Tool") and (v.Name:lower():find("gun") or v.Name:lower():find("pistol") or v.Name:lower():find("rifle")) then
+            v.Parent = player.Backpack
+        end
+    end
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Weapon Search",
+        Text = "กำลังค้นหาและดึงอาวุธเข้าตัว...",
+        Duration = 3
+    })
+end
 
--- ตั้งค่าปุ่มกด
-MainButton.Parent = ScreenGui
-MainButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50) -- เริ่มต้นสีแดง
-MainButton.Position = UDim2.new(0.5, -40, 0.5, -40) -- อยู่กลางจอ
-MainButton.Size = UDim2.new(0, 80, 0, 80) -- ขนาดปุ่มวงกลม
-MainButton.Font = Enum.Font.GothamBold
-MainButton.Text = "OFF"
-MainButton.TextColor3 = Color3.new(1, 1, 1)
-MainButton.TextSize = 20
-MainButton.Draggable = true -- ลากย้ายที่ได้
-MainButton.Active = true
-
--- ทำปุ่มให้กลม
-UICorner.CornerRadius = UDim.new(1, 0)
-UICorner.Parent = MainButton
-
-local clicking = false
-
--- ระบบคลิกรัว
-MainButton.MouseButton1Click:Connect(function()
-    clicking = not clicking
-    
-    if clicking then
-        MainButton.Text = "ON"
-        MainButton.BackgroundColor3 = Color3.fromRGB(50, 255, 50) -- เปลี่ยนเป็นสีเขียว
-        
-        task.spawn(function()
-            while clicking do
-                -- สั่งให้ตัวละครกดใช้ของที่ถืออยู่ (Tool)
-                local tool = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if tool then
-                    tool:Activate()
+-- 2. ระบบช่วยเล็ง (Aim Assist) - ยิงเข้าเป้า
+local function GetClosestPlayer()
+    local target = nil
+    local dist = math.huge
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
+            local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+            if onScreen then
+                local magnitude = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                if magnitude < dist then
+                    target = v
+                    dist = magnitude
                 end
-                
-                -- คลิกหน้าจอแบบเสมือน (Virtual Click)
-                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                game:GetService("VirtualInputManager"):SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                
-                task.wait(0.01) -- ความเร็ว (0.01 คือเร็วมาก)
             end
-        end)
-    else
-        MainButton.Text = "OFF"
-        MainButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50) -- กลับเป็นสีแดง
+        end
+    end
+    return target
+end
+
+-- 3. ปุ่มเมนูเล็กๆ สำหรับเรียกปืนและยิง
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 150, 0, 100)
+MainFrame.Position = UDim2.new(0.1, 0, 0.5, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
+local GetGunBtn = Instance.new("TextButton", MainFrame)
+GetGunBtn.Size = UDim2.new(1, 0, 0.5, 0)
+GetGunBtn.Text = "GET WEAPON"
+GetGunBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+GetGunBtn.TextColor3 = Color3.new(1,1,1)
+
+local KillBtn = Instance.new("TextButton", MainFrame)
+KillBtn.Size = UDim2.new(1, 0, 0.5, 0)
+KillBtn.Position = UDim2.new(0, 0, 0.5, 0)
+KillBtn.Text = "LOCK & KILL"
+KillBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+KillBtn.TextColor3 = Color3.new(1,1,1)
+
+-- ตั้งค่าการทำงานของปุ่ม
+GetGunBtn.MouseButton1Click:Connect(GetWeapons)
+
+KillBtn.MouseButton1Click:Connect(function()
+    local target = GetClosestPlayer()
+    if target and target.Character then
+        -- วาร์ปกระสุนหรือเป้าหมาย (ขึ้นอยู่กับระบบแมพ)
+        player.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Target Locked",
+            Text = "กำลังเข้าประชิด: " .. target.Name,
+            Duration = 2
+        })
     end
 end)
 
-print("มือสดกดเมนู: รันแล้ว! ลากปุ่มไว้ที่ไหนก็ได้แล้วกดเปิดได้เลย")
+-- ทำให้เมนูลากได้
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+print("สคริปต์สายบวก: มือสดกดเมนู ทำงานแล้ว!")
