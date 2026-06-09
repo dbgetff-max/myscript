@@ -1,11 +1,19 @@
--- Prison Life Mobile + PC Friendly (ESP + Silent Aim + Fly + Auto Shoot)
+-- Prison Life Fixed Version (GUI แก้ปัญหาไม่ขึ้น)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+
 local player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-print("🔷 Prison Life Mobile + PC Helper โหลดสำเร็จ!")
+-- รอ PlayerGui ให้พร้อม (แก้ปัญหาไม่ขึ้น)
+local PlayerGui = player:WaitForChild("PlayerGui", 10)
+if not PlayerGui then
+    warn("ไม่พบ PlayerGui!")
+    return
+end
+
+print("🔷 Prison Life Fixed Script กำลังโหลด...")
 
 local FLY_SPEED = 50
 local FIRE_RATE = 0.12
@@ -14,14 +22,14 @@ local FlyEnabled = false
 local AutoShootEnabled = false
 local ESPEnabled = true
 
+-- Silent Aim
 local function getClosestPlayer()
     local closest, shortest = nil, 9999
-    local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return end
-    
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
     for _, plr in pairs(Players:GetPlayers()) do
         if plr \~= player and plr.Character and plr.Character:FindFirstChild("Head") then
-            local dist = (plr.Character.Head.Position - rootPart.Position).Magnitude
+            local dist = (plr.Character.Head.Position - root.Position).Magnitude
             if dist < shortest then
                 shortest = dist
                 closest = plr
@@ -31,7 +39,6 @@ local function getClosestPlayer()
     return closest
 end
 
--- Silent Aim Hook
 local mt = getrawmetatable(game)
 local old = mt.__namecall
 setreadonly(mt, false)
@@ -50,7 +57,7 @@ mt.__namecall = newcclosure(function(self, ...)
 end)
 setreadonly(mt, true)
 
--- Fly
+-- Fly System
 local BodyVelocity, BodyGyro
 local function toggleFly()
     FlyEnabled = not FlyEnabled
@@ -66,14 +73,17 @@ local function toggleFly()
         BodyGyro = Instance.new("BodyGyro")
         BodyGyro.MaxTorque = Vector3.new(1e5,1e5,1e5)
         BodyGyro.Parent = root
+        
+        print("🛫 Fly เปิดแล้ว")
     else
         if BodyVelocity then BodyVelocity:Destroy() end
         if BodyGyro then BodyGyro:Destroy() end
+        print("🛫 Fly ปิดแล้ว")
     end
 end
 
 RunService.Heartbeat:Connect(function()
-    if FlyEnabled and BodyVelocity and BodyGyro then
+    if FlyEnabled and BodyVelocity then
         local cam = workspace.CurrentCamera
         local dir = Vector3.new()
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
@@ -84,14 +94,13 @@ RunService.Heartbeat:Connect(function()
         if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
         
         BodyVelocity.Velocity = dir.Unit * FLY_SPEED
-        BodyGyro.CFrame = cam.CFrame
+        if BodyGyro then BodyGyro.CFrame = cam.CFrame end
     end
 end)
 
 -- Auto Shoot
 spawn(function()
-    while true do
-        wait(FIRE_RATE)
+    while wait(FIRE_RATE) do
         if AutoShootEnabled then
             local target = getClosestPlayer()
             if target then
@@ -109,13 +118,15 @@ end)
 local function createESP(plr)
     if plr == player then return end
     local char = plr.Character or plr.CharacterAdded:Wait()
-    local root = char:WaitForChild("HumanoidRootPart", 3)
+    local root = char:WaitForChild("HumanoidRootPart", 5)
     if not root then return end
 
-    local bg = Instance.new("BillboardGui", root)
+    local bg = Instance.new("BillboardGui")
+    bg.Adornee = root
     bg.AlwaysOnTop = true
     bg.Size = UDim2.new(0, 200, 0, 60)
     bg.StudsOffset = Vector3.new(0,3,0)
+    bg.Parent = root
 
     local txt = Instance.new("TextLabel", bg)
     txt.Size = UDim2.new(1,0,1,0)
@@ -127,8 +138,7 @@ local function createESP(plr)
     RunService.RenderStepped:Connect(function()
         if not ESPEnabled then return end
         local team = plr.Team and plr.Team.Name or ""
-        local dist = (root.Position - (player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position or Vector3.new())).Magnitude
-        dist = math.floor(dist)
+        local dist = root.Position.Magnitude > 0 and math.floor((root.Position - (player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position or Vector3.new())).Magnitude) or 0
         
         if team:find("Guard") then
             txt.TextColor3 = Color3.fromRGB(0, 170, 255)
@@ -143,6 +153,7 @@ local function createESP(plr)
     end)
 end
 
+-- โหลด ESP
 for _, p in pairs(Players:GetPlayers()) do
     if p \~= player then createESP(p) end
 end
@@ -150,55 +161,57 @@ Players.PlayerAdded:Connect(function(p)
     p.CharacterAdded:Connect(function() wait(1) createESP(p) end)
 end)
 
--- GUI
-local sg = Instance.new("ScreenGui")
-sg.ResetOnSpawn = false
-sg.Parent = player:WaitForChild("PlayerGui")
+-- === GUI (แก้ไขใหม่) ===
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PrisonHelperGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 500)
-frame.Position = UDim2.new(0.05, 0, 0.2, 0)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,30)
-frame.Active = true
-frame.Draggable = true
-frame.Parent = sg
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 340, 0, 520)
+Frame.Position = UDim2.new(0.5, -170, 0.3, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
 
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,0,0,50)
-title.BackgroundColor3 = Color3.fromRGB(0,120,255)
-title.Text = "🔷 Prison Life Mobile+PC"
-title.TextColor3 = Color3.new(1,1,1)
-title.TextScaled = true
-title.Parent = frame
-Instance.new("UICorner", title).CornerRadius = UDim.new(0,12)
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+Title.Text = "🔷 Prison Life Helper"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.TextScaled = true
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Frame
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 12)
 
-local y = 60
-local function btn(text, func)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0.9,0,0,45)
-    b.Position = UDim2.new(0.05,0,0,y)
-    b.BackgroundColor3 = Color3.fromRGB(45,45,65)
-    b.Text = text
-    b.TextColor3 = Color3.new(1,1,1)
-    b.TextScaled = true
-    b.Parent = frame
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
-    b.MouseButton1Click:Connect(func)
-    y = y + 55
+local y = 70
+local function createBtn(text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 48)
+    btn.Position = UDim2.new(0.05, 0, 0, y)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.TextScaled = true
+    btn.Font = Enum.Font.GothamSemibold
+    btn.Parent = Frame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    btn.MouseButton1Click:Connect(callback)
+    y = y + 58
 end
 
-btn("🔄 ESP : ON/OFF", function() ESPEnabled = not ESPEnabled end)
-btn("🎯 Silent Aim : ON/OFF", function() SilentAimEnabled = not SilentAimEnabled end)
-btn("🛫 Fly : ON/OFF", toggleFly)
-btn("🔫 Auto Shoot : ON/OFF", function() AutoShootEnabled = not AutoShootEnabled end)
-btn("🚀 Fly Speed +10", function() FLY_SPEED += 10 end)
-btn("🚀 Fly Speed -10", function() FLY_SPEED = math.max(20, FLY_SPEED-10) end)
-btn("⚡ ยิงเร็วขึ้น", function() FIRE_RATE = math.max(0.05, FIRE_RATE-0.03) end)
-btn("🚪 วาร์ปออกคุก", function() 
+createBtn("🔄 ESP ON/OFF", function() ESPEnabled = not ESPEnabled end)
+createBtn("🎯 Silent Aim ON/OFF", function() SilentAimEnabled = not SilentAimEnabled end)
+createBtn("🛫 Fly ON/OFF", toggleFly)
+createBtn("🔫 Auto Shoot ON/OFF", function() AutoShootEnabled = not AutoShootEnabled end)
+createBtn("🚀 Fly Speed +10", function() FLY_SPEED = FLY_SPEED + 10 end)
+createBtn("🚪 วาร์ปออกคุก", function()
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if root then root.CFrame = CFrame.new(900,50,900) end
+    if root then root.CFrame = CFrame.new(900, 50, 900) end
 end)
 
-print("🎉 สคริปต์พร้อมใช้งานทั้งมือถือและคอม!")
+print("🎉 สคริปต์โหลดสำเร็จ! ควรเห็น GUI แล้ว")
