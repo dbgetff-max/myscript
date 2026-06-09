@@ -5,9 +5,8 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-print("🔷 Prison Life Mobile + PC Helper โหลดสำเร็จ! (เหมาะกับ Arceus X, Delta, Solara, Fluxus)")
+print("🔷 Prison Life Mobile + PC Helper โหลดสำเร็จ!")
 
--- ตั้งค่า
 local FLY_SPEED = 50
 local FIRE_RATE = 0.12
 local SilentAimEnabled = true
@@ -15,7 +14,6 @@ local FlyEnabled = false
 local AutoShootEnabled = false
 local ESPEnabled = true
 
--- === Silent Aim (ไม่ใช้ Drawing Circle เพื่อความเข้ากันได้มือถือ) ===
 local function getClosestPlayer()
     local closest, shortest = nil, 9999
     local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -33,7 +31,7 @@ local function getClosestPlayer()
     return closest
 end
 
--- Hook Silent Aim
+-- Silent Aim Hook
 local mt = getrawmetatable(game)
 local old = mt.__namecall
 setreadonly(mt, false)
@@ -52,7 +50,7 @@ mt.__namecall = newcclosure(function(self, ...)
 end)
 setreadonly(mt, true)
 
--- === Fly System ===
+-- Fly
 local BodyVelocity, BodyGyro
 local function toggleFly()
     FlyEnabled = not FlyEnabled
@@ -107,7 +105,7 @@ spawn(function()
     end
 end)
 
--- === ESP (Billboard) ===
+-- ESP
 local function createESP(plr)
     if plr == player then return end
     local char = plr.Character or plr.CharacterAdded:Wait()
@@ -145,7 +143,6 @@ local function createESP(plr)
     end)
 end
 
--- โหลด ESP
 for _, p in pairs(Players:GetPlayers()) do
     if p \~= player then createESP(p) end
 end
@@ -153,7 +150,7 @@ Players.PlayerAdded:Connect(function(p)
     p.CharacterAdded:Connect(function() wait(1) createESP(p) end)
 end)
 
--- === GUI (ใช้งานได้ทั้งมือถือและคอม) ===
+-- GUI
 local sg = Instance.new("ScreenGui")
 sg.ResetOnSpawn = false
 sg.Parent = player:WaitForChild("PlayerGui")
@@ -177,7 +174,6 @@ title.TextScaled = true
 title.Parent = frame
 Instance.new("UICorner", title).CornerRadius = UDim.new(0,12)
 
--- ปุ่มต่าง ๆ (เพิ่มได้เรื่อย ๆ)
 local y = 60
 local function btn(text, func)
     local b = Instance.new("TextButton")
